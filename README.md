@@ -2,7 +2,7 @@
 
 Roleplay with AI with a focus on strong narration and consistent world and game state tracking.
 
-###Comes with the following additions:
+### Comes with the following additions:
 
 ---
 
