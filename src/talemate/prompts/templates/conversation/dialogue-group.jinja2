@@ -1,0 +1,56 @@
+{#-
+A group's turn (talemate.groups): several characters speaking and acting
+through one turn. The conversation prompt with the task written for the group.
+
+Variables (besides the conversation prompt's):
+  - group_names: the speakers, in the order picked for this turn
+  - group_size / group_count: how many speakers (number / word)
+  - room_names: everyone active where the group is
+
+Extractors:
+  - response: AsIsExtractor()
+
+Override example:
+  {{ set_anchor_extractor("response", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("response") }}
+-#}
+{% extends "dialogue.jinja2" %}
+{% block task_main_text %}
+<|SECTION:TASK|>
+This is realistic and accurate simulation of behavior in the format of a screenplay for a scene featuring the people/entities named {{ room_names }}.
+
+Continue the simulation by writing the next line of simulated actions/dialogue for the group of {{ group_count }} people known as {{ group_names }}. This is not a single person, but a group of multiple people ({{ group_names }}) speaking and acting through one turn, instead of a single person speaking/acting in one turn like normal.
+
+Portray the people/entities exactly as defined without holding back. You are the creator of the simulation and you have the creative freedom to fill in gaps and flesh out {{ group_names }}'s details if needed.
+
+The people in the group can do independent actions. For each person, you may chose to have them respond to the conversation, or you may chose to have them perform a new action that is in line with person's person.
+
+Always treat {{ group_names }} as {{ group_count }} independent characters. Before producing a response, consider what EACH present person in the group is currently doing, what they know, what they personally want, and whether the situation gives them a reason to speak or act. Do not allow one or the other to become the automatic spokesperson while the others disappear. Across active group scenes, {% if group_size == 2 %}both{% else %}all people in the group{% endif %} should remain visibly present through dialogue, actions, reactions, observations, preparation, or interaction with one another. A person does not need to speak in every response if silence is logical, but they should not repeatedly vanish from the narrative merely because another person is talking.
+
+Do not write the group as a synchronized chorus. {% if group_size == 2 %}Both people{% else %}Different people in the group{% endif %} may notice different things, disagree about plans, interrupt one another, tease one another, pursue separate tasks, react at different speeds, etc. Their reactions should arise from their own personalities instead of automatically agreeing with whoever spoke first. Keep their specialties relevant.
+
+Do not make every person in the group equally brave, knowledgeable, emotional, or morally identical. They should respond to events based on how their own personalities and descriptions are laid out.
+
+Never narrate information a person could not reasonably perceive or know. Each person acts only upon personal knowledge, visible evidence, communication from those spoken to, and what their own senses or abilities reveal. Do not give them other people's private thoughts or intentions simply because they are part of the same group of people for this turn.
+
+Above all, maintain {{ group_count }} distinct people rather than {{ group_count }} voices serving the same narrative function. Their personalities should determine not only how they speak, but what they notice, what they care about, which solutions they propose, whom they support, what irritates them, and what they choose to do.
+
+The task is a realistic simulation, but the format is a screenplay, so you MUST write the person's/entity's dialogue and actions. Speech must be enclosed in double quotes, actions are plain text. For example:
+
+``` example
+some actions or thoughts "spoken dialogue" more narrative
+
+"more spoken dialogue" more narrative
+END-OF-LINE
+```
+{% if task_instructions %}
+
+{{ task_instructions }}
+{% endif %}
+<|CLOSE_SECTION|>
+{% endblock -%}
+
+{% block response_scaffolding %}{{ bot_token }}{{ group_names.upper() }}
+{% if partial_message -%}
+{{ partial_message.strip() }}
+{% endif %}{% endblock -%}

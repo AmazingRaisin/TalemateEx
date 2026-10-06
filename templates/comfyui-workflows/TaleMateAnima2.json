@@ -1,0 +1,366 @@
+{
+  "2": {
+    "inputs": {
+      "clip_name": "noobai-anime-clipl.safetensors",
+      "type": "stable_diffusion",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "3": {
+    "inputs": {
+      "unet_name": "anima\\anima_baseV10.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "4": {
+    "inputs": {
+      "clip_name": "qwen_3_06b_base.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "5": {
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "10": {
+    "inputs": {
+      "text": [
+        "27",
+        0
+      ],
+      "clip": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Base 1"
+    }
+  },
+  "11": {
+    "inputs": {
+      "text": [
+        "16",
+        0
+      ],
+      "clip": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Clip Pos 1"
+    }
+  },
+  "12": {
+    "inputs": {
+      "text": [
+        "26",
+        0
+      ],
+      "clip": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Clip Neg"
+    }
+  },
+  "13": {
+    "inputs": {
+      "w": 3,
+      "start_layer": 0,
+      "end_layer": -1,
+      "adapter_mode": "local_file",
+      "adapter_path": "C:\\Void\\ComfyUpdated\\ComfyUI_Models\\tags\\checkpoint_4000.pt",
+      "model": [
+        "19",
+        0
+      ],
+      "clip_base_conditioning": [
+        "10",
+        0
+      ],
+      "clip_positive_conditioning": [
+        "11",
+        0
+      ],
+      "clip_negative_conditioning": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "AnimaModGuidance",
+    "_meta": {
+      "title": "Mod Guidance 1"
+    }
+  },
+  "14": {
+    "inputs": {
+      "eta": 0.5,
+      "sampler_name": "linear/euler",
+      "scheduler": "sgm_uniform",
+      "steps": 40,
+      "steps_to_run": -1,
+      "denoise": 1,
+      "cfg": 5,
+      "seed": 1113381918866690,
+      "sampler_mode": "standard",
+      "bongmath": true,
+      "model": [
+        "13",
+        0
+      ],
+      "positive": [
+        "31",
+        0
+      ],
+      "negative": [
+        "21",
+        0
+      ],
+      "latent_image": [
+        "28",
+        0
+      ]
+    },
+    "class_type": "ClownsharKSampler_Beta",
+    "_meta": {
+      "title": "ClownsharKSampler 1"
+    }
+  },
+  "15": {
+    "inputs": {
+      "String": "kittew"
+    },
+    "class_type": "KepStringLiteral",
+    "_meta": {
+      "title": "String"
+    }
+  },
+  "16": {
+    "inputs": {
+      "string_a": "best quality, absurdres, uncensored, score_9, score_8, @",
+      "string_b": [
+        "15",
+        0
+      ],
+      "delimiter": ""
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  },
+  "18": {
+    "inputs": {
+      "string_a": [
+        "16",
+        0
+      ],
+      "string_b": "",
+      "delimiter": ", "
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  },
+  "19": {
+    "inputs": {
+      "text": "<lora:anima-turbo-lora-v0.1:1> <lora:anima-preview2-masterpieces-e50:1> <lora:anima-highres-aesthetic-boost:1>",
+      "loras": {
+        "__value__": [
+          {
+            "name": "anima-turbo-lora-v0.1",
+            "strength": 1,
+            "active": false,
+            "expanded": false,
+            "clipStrength": 1
+          },
+          {
+            "name": "anima-preview2-masterpieces-e50",
+            "strength": 1,
+            "active": false,
+            "expanded": false,
+            "clipStrength": 1
+          },
+          {
+            "name": "anima-highres-aesthetic-boost",
+            "strength": 1,
+            "active": false,
+            "expanded": false,
+            "clipStrength": 1
+          }
+        ]
+      },
+      "model": [
+        "3",
+        0
+      ],
+      "clip": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "Lora Loader (LoraManager)",
+    "_meta": {
+      "title": "Lora Loader (LoraManager)"
+    }
+  },
+  "21": {
+    "inputs": {
+      "text": [
+        "26",
+        0
+      ],
+      "clip": [
+        "19",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Negative Encoding"
+    }
+  },
+  "23": {
+    "inputs": {
+      "text": ""
+    },
+    "class_type": "ttN text",
+    "_meta": {
+      "title": "Talemate Positive Prompt"
+    }
+  },
+  "24": {
+    "inputs": {
+      "text": ""
+    },
+    "class_type": "ttN text",
+    "_meta": {
+      "title": "Talemate Negative Prompt"
+    }
+  },
+  "25": {
+    "inputs": {
+      "text": "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, monochrome"
+    },
+    "class_type": "ttN text",
+    "_meta": {
+      "title": "Neg"
+    }
+  },
+  "26": {
+    "inputs": {
+      "string_a": [
+        "25",
+        0
+      ],
+      "string_b": [
+        "24",
+        0
+      ],
+      "delimiter": ", "
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  },
+  "27": {
+    "inputs": {
+      "string_a": [
+        "18",
+        0
+      ],
+      "string_b": [
+        "23",
+        0
+      ],
+      "delimiter": ", "
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate"
+    }
+  },
+  "28": {
+    "inputs": {
+      "width": 512,
+      "height": 512,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": {
+      "title": "Talemate Resolution"
+    }
+  },
+  "29": {
+    "inputs": {
+      "samples": [
+        "14",
+        0
+      ],
+      "vae": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "30": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "29",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "31": {
+    "inputs": {
+      "text": [
+        "27",
+        0
+      ],
+      "clip": [
+        "19",
+        1
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  }
+}

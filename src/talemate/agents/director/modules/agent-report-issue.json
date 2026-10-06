@@ -1,0 +1,203 @@
+{
+  "title": "Agent Report Issue",
+  "id": "cfbec838-8e88-4dc0-89d3-f4a066f9b70f",
+  "properties": {
+    "name": "report_problem",
+    "allow_multiple_calls": true
+  },
+  "x": 0,
+  "y": 0,
+  "width": 200,
+  "height": 100,
+  "collapsed": false,
+  "inherited": false,
+  "registry": "agents/director/chat/agentReportIssue",
+  "nodes": {
+    "525b49ff-665b-40ae-8548-77b7be248745": {
+      "title": "task",
+      "id": "525b49ff-665b-40ae-8548-77b7be248745",
+      "properties": {
+        "name": "task",
+        "typ": "str",
+        "instructions": "Briefly describe the task that was not completed."
+      },
+      "x": 23,
+      "y": 78,
+      "width": 210,
+      "height": 106,
+      "collapsed": false,
+      "inherited": false,
+      "registry": "focal/Argument",
+      "base_type": "core/Node"
+    },
+    "274006b2-0cda-47d2-9e7a-5182affbc30d": {
+      "title": "report",
+      "id": "274006b2-0cda-47d2-9e7a-5182affbc30d",
+      "properties": {
+        "name": "issue",
+        "typ": "str",
+        "instructions": "Explanatioin of any issues you faced that prevented you from fulfilling the specified task."
+      },
+      "x": 33,
+      "y": 268,
+      "width": 210,
+      "height": 106,
+      "collapsed": false,
+      "inherited": false,
+      "registry": "focal/Argument",
+      "base_type": "core/Node"
+    },
+    "03aa565e-2cd9-401e-bb1b-750aecd159e3": {
+      "title": "Advanced Format",
+      "id": "03aa565e-2cd9-401e-bb1b-750aecd159e3",
+      "properties": {
+        "template": "Could not complete all tasks.\n\nTASK: {task}\n\nISSUE: {issue}"
+      },
+      "x": 313,
+      "y": 138,
+      "width": 210,
+      "height": 153,
+      "collapsed": false,
+      "inherited": false,
+      "registry": "data/string/AdvancedFormat",
+      "dynamic_inputs": [
+        {
+          "name": "item0",
+          "type": "*"
+        },
+        {
+          "name": "item1",
+          "type": "*"
+        }
+      ],
+      "base_type": "core/DynamicSocketNodeBase"
+    },
+    "a0b1972c-5a0f-40aa-a30d-b299fab107c2": {
+      "title": "Return",
+      "id": "a0b1972c-5a0f-40aa-a30d-b299fab107c2",
+      "properties": {},
+      "x": 590,
+      "y": 180,
+      "width": 140,
+      "height": 26,
+      "collapsed": false,
+      "inherited": false,
+      "registry": "core/functions/Return",
+      "base_type": "core/Node"
+    },
+    "16db1b24-2713-46f2-a329-2b7aa1b77f0e": {
+      "title": "AI Function Callback Metadata",
+      "id": "16db1b24-2713-46f2-a329-2b7aa1b77f0e",
+      "properties": {
+        "instructions": "Report back if you are unable to complete a task and why so assistance can be given to you.",
+        "examples": [
+          {
+            "task": "I was tasked to update existing context 'Dragon scales'.",
+            "issue": "I could not locate the Context ID for the entry."
+          }
+        ]
+      },
+      "x": 770,
+      "y": 180,
+      "width": 244,
+      "height": 82,
+      "collapsed": false,
+      "inherited": false,
+      "registry": "focal/Metadata",
+      "base_type": "core/Node"
+    }
+  },
+  "edges": {
+    "525b49ff-665b-40ae-8548-77b7be248745.value": [
+      "03aa565e-2cd9-401e-bb1b-750aecd159e3.item0"
+    ],
+    "274006b2-0cda-47d2-9e7a-5182affbc30d.value": [
+      "03aa565e-2cd9-401e-bb1b-750aecd159e3.item1"
+    ],
+    "03aa565e-2cd9-401e-bb1b-750aecd159e3.result": [
+      "a0b1972c-5a0f-40aa-a30d-b299fab107c2.value"
+    ],
+    "a0b1972c-5a0f-40aa-a30d-b299fab107c2.value": [
+      "16db1b24-2713-46f2-a329-2b7aa1b77f0e.state"
+    ]
+  },
+  "groups": [
+    {
+      "title": "Process",
+      "x": 4,
+      "y": 3,
+      "width": 1119,
+      "height": 381,
+      "color": "#3f789e",
+      "font_size": 24,
+      "inherited": false
+    }
+  ],
+  "comments": [],
+  "extends": null,
+  "base_type": "core/functions/Function",
+  "inputs": [],
+  "outputs": [
+    {
+      "id": "9e49d0b6-ecbf-4cfb-bef1-126218edaa92",
+      "name": "fn",
+      "optional": false,
+      "group": null,
+      "socket_type": "function"
+    },
+    {
+      "id": "74dc082c-0ab2-45e9-b259-c1e7ef2746be",
+      "name": "name",
+      "optional": false,
+      "group": null,
+      "socket_type": "str"
+    },
+    {
+      "id": "f63646ec-5150-41b0-a71f-461a48c488c2",
+      "name": "allow_multiple_calls",
+      "optional": false,
+      "group": null,
+      "socket_type": "bool"
+    },
+    {
+      "id": "5f0677b2-2bd7-4d49-b3a9-bee5f7a2a2dc",
+      "name": "ai_callback",
+      "optional": false,
+      "group": null,
+      "socket_type": "focal/callback"
+    }
+  ],
+  "module_properties": {
+    "name": {
+      "name": "name",
+      "description": "The name of the function",
+      "type": "str",
+      "default": "",
+      "choices": null,
+      "readonly": false,
+      "step": null,
+      "min": null,
+      "max": null,
+      "ephemeral": false
+    },
+    "allow_multiple_calls": {
+      "name": "allow_multiple_calls",
+      "description": "Function can be called multiple times during AI Function Calling",
+      "type": "bool",
+      "default": false,
+      "choices": null,
+      "readonly": false,
+      "step": null,
+      "min": null,
+      "max": null,
+      "ephemeral": false
+    }
+  },
+  "style": {
+    "title_color": "#573a2e",
+    "node_color": "#392f2c",
+    "icon": "F0295",
+    "auto_title": null,
+    "counterpart": null
+  }
+}

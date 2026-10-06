@@ -1,0 +1,17 @@
+### {{ callback.pretty_name }} ({{ callback.name }})
+
+{{ usage }}
+
+{% if callback.multiple %}You may call this function multiple times. {% else %}You may only call this function once. {% endif %}
+
+#### {{ callback.name }} arguments
+
+{{ callback.usage(argument_usage)}}
+
+{% if examples %}#### {{ callback.name }} examples
+{% for example in examples %}
+{% if example["_comment"]%}{{ example["_comment"] }}
+{% endif -%}
+{{ callback.example(example) }}
+{% endfor %}
+{% endif %}

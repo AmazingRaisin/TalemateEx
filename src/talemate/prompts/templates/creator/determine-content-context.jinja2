@@ -1,0 +1,37 @@
+{#-
+Extractors:
+  - response: AsIsExtractor()
+
+Override example:
+  {{ set_anchor_extractor("response", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("response") }}
+-#}
+{% if character -%}
+<|SECTION:CHARACTER AND CONTEXT|>
+{{ character.name }}
+{{ character_description_for(character, local_character|default(none)) }}
+<|CLOSE_SECTION|>
+{% elif description -%}
+<|SECTION:SCENARIO DESCRIPTION|>
+{{ description }}
+<|CLOSE_SECTION|>
+{% endif -%}
+<|SECTION:TASK|>
+{% if character -%}
+Analyze the character information and context and determine a fitting content context.
+
+The content context should be a single short phrase that describes the expected experience when interacting with the character.
+{% else -%}
+Analyze the scenario description and determine a fitting content context.
+
+The content context should be a single short phrase that describes the expected experience when interacting with the scenario.
+{% endif %}
+Your response should be "Content context: a ..."
+
+Examples:
+
+{% for content_context in config.creator.content_context -%}
+- {{ content_context }}
+{% endfor -%}
+<|CLOSE_SECTION|>
+{{ bot_token }}Content context: a

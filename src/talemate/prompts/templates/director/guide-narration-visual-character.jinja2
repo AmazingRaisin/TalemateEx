@@ -1,0 +1,23 @@
+{% set character = agent_context_state.narrator__character %}
+Guide the story writer to write a visual description of {{ character.name }} as they are currently in the scene.
+
+{% if last_event -%}
+Following the final moment:
+```
+{{ last_event }}
+```
+{% endif %}
+
+{% include "guide-narrative-direction.jinja2" %}
+
+Help them achieve this by pointing them toward WHAT to describe about {{ character.name }}, not HOW to describe it.
+
+Keep your guidance brief and high-level. Tell the writer which elements to focus on (e.g., "their expression," "the state of their clothing," "their posture"). Do NOT suggest metaphors, figurative language, specific phrasing, or tone. Do NOT write draft descriptions. The writer will decide how to render the details.
+
+Make sure the writer understands the focus is a visual description of {{ character.name }} in the current moment. They may describe existing features, but should offer something not yet conveyed rather than restating descriptions already given.
+
+{% if response_length > 300 -%}
+{% with task_instructions="Based on the scene analysis and scene intent, briefly list what key elements of " + character.name + "'s appearance should be included. Keep it to short pointers, not prose." -%}
+    {% include "scene-intent-inline.jinja2" %}
+{% endwith %}
+{% endif %}

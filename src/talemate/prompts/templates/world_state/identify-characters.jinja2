@@ -1,0 +1,21 @@
+{#-
+Extractors:
+  - response: AsIsExtractor()
+
+Override example:
+  {{ set_anchor_extractor("response", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("response") }}
+-#}
+<|SECTION:CONTENT|>
+{% if text -%}
+{{ text }}
+{% else -%}
+{% set scene_context_history = scene.context_history(budget=max_tokens-500, min_dialogue=25, sections=False, keep_director=True) -%}
+{% if scene.num_history_entries < 25 %}{{ scene.description }}{% endif -%}
+{% for scene_context in scene_context_history -%}
+{{ scene_context }}
+{% endfor %}
+{% endif %}
+<|SECTION:TASK|>
+Identify all main characters by name respond with a json object in the format of {"characters":[{"name": "John" , "description": "Information about the character" }]}
+{{ set_data_response({"characters":[""]}) }}

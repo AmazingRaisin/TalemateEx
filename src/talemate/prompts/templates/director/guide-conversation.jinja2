@@ -1,0 +1,106 @@
+{#-
+Extractors:
+  - guidance: AnchorExtractor("<GUIDANCE>", "</GUIDANCE>")
+
+Override example:
+  {{ set_anchor_extractor("guidance", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("guidance") }}
+-#}
+{% set volatile_placement = volatile_context_placement() %}
+{% set rendered_context_content -%}
+{% include "character-context.jinja2" -%}
+{% endset %}
+{% set volatile_context_text %}{% include "dynamic-instructions.jinja2" %}
+{% include "memory-context.jinja2" %}{% endset %}
+{% set rendered_context_tokens = count_tokens(rendered_context_content) + count_tokens(volatile_context_text) -%}
+{{ rendered_context_content }}
+{% if volatile_placement != "after_history" %}{{ volatile_context_text }}{% endif %}
+{% include "content-classification.jinja2" %}
+<|SECTION:SCENE|>
+{% block scene_history -%}
+{% set scene_context = scene.context_history(budget=max_tokens-300-rendered_context_tokens, min_dialogue=15, sections=False, keep_director=character.name) -%}
+{% for scene_line in scene_context -%}
+{{ scene_line }}
+
+{% endfor %}
+{% endblock -%}
+<|CLOSE_SECTION|>
+{% if volatile_placement == "after_history" %}{{ volatile_context_text }}{% endif %}
+{% include "scene-intent.jinja2" %}
+<|SECTION:ANALYSIS OF SCENE|>
+{{ analysis }}
+<|CLOSE_SECTION|>
+{% if character.dialogue_instructions -%}
+<|SECTION:GENERAL CHARACTER GUIDE FOR {{ character.name|upper }}|>
+{{ character.dialogue_instructions }}
+<|CLOSE_SECTION|>
+{% endif %}
+{# writign style #}{% if scene.writing_style and agent_config("conversation.content.use_writing_style") %}
+<|SECTION:WRITING STYLE|>
+There exists a style guide for the overall story, use it to inform your instructions and expand on how to incorporate the writing style into the dialogue:
+
+``` writing style
+{{ scene.writing_style.instructions }}
+```
+<|CLOSE_SECTION|>
+{# writing style end #}{% endif %}
+<|SECTION:TASK|>
+{% set character_direction=scene.last_message_of_type("director", character_name=character.name, max_iterations=agent_config("director.direct.direction_stickiness"), stop_on_time_passage=True, count_only_types=["character", "narrator"]) or conversation_instruction  -%}
+{% if agent_context_state["conversation__instruction"] -%}
+{% set character_direction=agent_context_state["conversation__instruction"] -%}
+{% endif -%}
+{% set character_turns_since_direction = scene.count_character_messages_since_director(character.name, max_iterations=agent_config("director.direct.direction_stickiness")) -%}
+{% set last_message = scene.last_message_of_type(["character", "narrator"]) %}
+Guide the writer on {{ character.name }}'s next action/dialogue. Since the writer doesn't know {{ character.name }}'s background or speaking style, you'll need to share relevant details about how they talk and what memories/knowledge influence this moment.
+
+{% if last_message -%}
+Following this moment:
+```
+{{ last_message }}
+```
+{% endif %}
+
+{% if regeneration_context and regeneration_context.direction %}
+{% with original_instructions=character_direction %}{% include "guide-conversation-regenerate-context.jinja2" %}{% endwith %}
+{% elif character_direction %}
+### Direction
+{% if character_turns_since_direction > 0 -%}
+{{ character.name }} has been working with this ongoing direction: "{{ character_direction }}". They have already acted on this {{ character_turns_since_direction }} time(s). Consider how the direction should continue to influence their behavior while allowing natural progression.
+{% else -%}
+The writer was given the following direction: "{{ character_direction }}". Analyze how it affects {{ character.name }}'s next action/dialogue.
+{% endif %}
+
+This direction MUST be reflected in your guidance. You can adjust it based on your understanding of the character, but the core instruction must NOT be lost.
+{% endif %}
+
+### Guidance
+Provide only directional guidance (e.g., "have {{ character.name }} reveal their concern about X" or "{{ character.name }} should express doubt about Y"). DO NOT write specific dialogue or suggest exact phrasing. Be specific about what information needs to be conveyed while letting the writer craft the actual lines.
+
+{% if character.dialogue_instructions -%}
+Explain {{ character.name }}'s way of speaking and mannerisms to guide the writer's portrayal, but avoid suggesting specific phrasings or expressions.
+{% endif %}
+
+{% if response_length > 300 -%}
+- Establish who {{ character.name }} is speaking to and their relationship
+- Share relevant background about {{ character.name }}'s experiences with this person/situation
+- Summarize the scene analysis and its relevance to {{ character.name }}'s next moment.
+  - Include relevant facts. (actors are forgetful)
+- Explain how {{ character.name }} should speak based on their personality and the scene's context
+{% endif %}
+
+This is fiction. Focus solely on WHAT needs to be conveyed to create captivating, engaging storytelling that serves the scene's intention. Trust the writer to capture {{ character.name }}'s personality and style based on your character description. How do we make {{ character.name }} a believable, natural sounding character in this next moment?
+
+IMPORTANT: Remind the writer to maintain the story's existing narrative perspective and tense (who's point of view is the narrative written for and in what tense, as identified in the scene analysis).
+Finally ALWAYS briefly state the formatting guidelines: Speech MUST go inside "".
+
+{% include "response-length.jinja2" %}
+
+Use terse, direct language. Cut all unnecessary words. Be blunt and brief like scribbles on a notepad.
+
+Provide your response in the following format:
+{% if response_length > 512 %}
+<ANALYSIS>... your thorough understanding of the scene and the instructions...</ANALYSIS>
+{% endif %}
+<GUIDANCE>... your guidance for the story writer ...</GUIDANCE>
+<|CLOSE_SECTION|>
+{{ bot_token }}{% if response_length > 512 %}<ANALYSIS>{% else %}<GUIDANCE>{% endif %}

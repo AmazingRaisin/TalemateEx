@@ -1,0 +1,41 @@
+{# LOCATIONS (talemate.rooms) #}
+{% set room_locations = scene.room_locations_text() -%}
+{% if room_locations -%}
+{{ room_locations }}
+
+{% endif -%}
+{% include "content-classification.jinja2" %}
+{% if include_scenario_premise %}
+Scenario Premise:
+{{ scene.description }}
+
+{% endif %}
+{% if include_scene_intent %}
+{% with exclude_phase_intent=exclude_phase_intent|default(False) %}{% include "scene-intent.jinja2" %}{% endwith %}
+{% endif %}
+{% block rendered_context_static %}
+{# GENERAL REINFORCEMENTS #}
+{% set general_reinforcements = scene.world_state.filter_reinforcements(insert=reinforcement_inserts|default(['all-context']), requesting_character=reinforcement_requesting_character|default(none)) -%}
+{%- for reinforce in general_reinforcements if not (reinforce is sameas(reinforcement_exclude|default(none))) %}
+{{ reinforce.as_context_line }}
+
+{% endfor %}
+{# END GENERAL REINFORCEMENTS #}
+{# CHARACTER SPECIFIC REINFORCEMENTS #}
+{% if reinforcement_character and reinforcement_character_inserts %}
+{% set char_reinforcements = scene.world_state.filter_reinforcements(character=reinforcement_character, insert=reinforcement_character_inserts, requesting_character=reinforcement_requesting_character|default(none)) -%}
+{%- for reinforce in char_reinforcements if not (reinforce is sameas(reinforcement_exclude|default(none))) %}
+{{ reinforce.as_context_line }}
+
+{% endfor %}
+{% endif %}
+{# END CHARACTER SPECIFIC REINFORCEMENTS #}
+{# ACTIVE PINS #}
+{% set active_pins = scene.visible_active_pins() -%}
+{% if active_pins and technical %}<|SECTION:ACTIVE PINS|>{% endif %}
+{%- for pin in active_pins %}
+{% if technical %}`{{ pin.context_id }}`: {% else %}{{ pin.title }}: {{ pin.time_aware_text|condensed }}{% endif %}
+---
+{% endfor %}
+{# END ACTIVE PINS #}
+{% endblock %}

@@ -1,0 +1,83 @@
+{#-
+Extractors:
+  - analysis: AnchorExtractor("<ANALYSIS>", "</ANALYSIS>") [required]
+  - investigate: AnchorExtractor("<INVESTIGATE>", "</INVESTIGATE>")
+
+Override example:
+  {{ set_anchor_extractor("analysis", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("analysis") }}
+-#}
+{% include "scene-context.jinja2" %}
+{% include "scene-intent.jinja2" %}
+<|SECTION:TASK|>
+{% set last_message = scene.last_message_of_type(["character", "narrator"]) -%}
+{% set character_direction=scene.last_message_of_type("director", character_name=character.name, max_iterations=agent_config("director.direct.direction_stickiness"), stop_on_time_passage=True, count_only_types=["character", "narrator"]) -%}
+{% if agent_context_state["conversation__instruction"] -%}
+{% set character_direction=agent_context_state["conversation__instruction"] -%}
+{% endif -%}
+{% set character_turns_since_direction = scene.count_character_messages_since_director(character.name, max_iterations=agent_config("director.direct.direction_stickiness")) -%}
+Your task is to analyze the scene progression so far and how it informs what {{ character.name }}'s next line or action in the scene will be.
+
+The information you write will be given to the other story editors to write {{ character.name }}'s next action in the scene.
+
+{{ li() }}. Briefly make statements about context, meaning and facts established relevant to the current moment in the scene. Facts are sourced from the existing story, don't assume, only state things that are explicitly true.
+
+{{ li() }}. Brielfy list who the characters in the scene are to each other. (Active or referenced)
+
+{% if character_direction -%}
+{% if character_turns_since_direction > 0 -%}
+{{ li() }}. {{ character.name }} has been working with this ongoing direction: "{{ character_direction }}". They have already acted on this {{ character_turns_since_direction }} time(s). Analyze how well they've been following it and whether they should continue, intensify, or naturally conclude this direction in their next action.
+{% else -%}
+{{ li() }}. The story editors were given the following direction: "{{ character_direction }}". Briefly analyze the direction - what does it mean for {{ character.name }}'s next action?
+{% endif %}
+
+{% endif %}
+{% if last_message -%}
+{{ li() }}. Briefly explain the meaning of the current moment in the scene.
+  - Where are we?
+  - What are we doing?
+  - What is the meaning of the current moment and what was the meaning of their dialogue and actions? 
+
+``` current moment in the scene
+{{ last_message }}
+```
+
+{{ li() }}. What specific problems do the characters have to solve in the immediate future. The immediate future means within the next 30 minutes. This isn't about grand unspecified problems like "They need to survive" but instead should be specific tangible problems.
+
+{% if scene.intent_state.active %}
+{% with task_instructions="How does the scene intention inform the meaning of this moment and what could it mean for "+character.name+"'s next action?" -%}
+{{ li() }}. {% include "scene-intent-inline.jinja2" %}
+{% endwith %}
+{% endif %}
+
+{{ li() }}. Is {{ character.name }} aware of the current moment? This is IMPORTANT - It cannot affect their next action if they are not aware. You must be very explicit about this and either say Yes or No.
+{% endif %}
+
+{{ li() }}. What narrative perspective and tense is the story written in? (e.g., "third person past tense", "first person present tense from Character X's perspective", etc.)
+
+{{ li() }}. What is the cadence and nature of the current dialogue? Is it ongoing or is a new dialogue starting? Who is talking to who?
+
+{% if length > 512 %}{{ li() }}. What are the current spatial relationships? Where are characters positioned relative to each other and to objects in the scene?{% endif %}
+
+{% if length >= 512 %}
+{{ li() }}. Briefly list any relevant bits of information from the "Potentially relevant information" section. Skip this step if there aren't any.
+
+Note that the 'Potentially relevant information' section has been filled in from a previous prompt and may not be relevant at all.
+{% endif %}
+
+{% if length <= 256 %}Your analysis should be 1 - 2 paragraphs long.{% elif length <= 512 %}Your analysis should be 2 - 3 paragraphs long.{% endif %}
+
+{% if length <= 512 %}Use terse, direct language. Cut all unnecessary words. Be blunt and brief like scribbles on a notepad.{% endif %}
+
+{% if length > 512 %}Address all points 1 to {{ li()-1 }} in the order they are listed.{% endif %}
+
+No markdown formatting, provide simple plain text.
+
+Provide your response in the following format:
+
+<ANALYSIS>... your analysis ...</ANALYSIS>
+{% if deep_analysis %}
+<INVESTIGATE>... describe what specific information from long-term memory would be useful to retrieve to deepen the understanding of this moment. Be specific about what facts, events, or character history would be most valuable. ...</INVESTIGATE>
+{% endif %}
+<|CLOSE_SECTION|>
+{{ set_prepared_response("<ANALYSIS>", fallback="") }}

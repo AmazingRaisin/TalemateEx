@@ -1,0 +1,12 @@
+[lint]
+# Disable automatic fix for unused imports (`F401`). We check these manually.
+unfixable = ["F401"]
+# Ignore E402
+extend-ignore = ["E402"]
+
+[lint.per-file-ignores]
+# Baseline test files import pytest fixtures at module level and re-use the
+# same names as method parameters for fixture injection.  F811 (redefinition
+# of unused name) is a false positive in this pattern.
+"tests/prompts/baselines/*.py" = ["F811"]
+"tests/prompts/baselines_cached/*.py" = ["F811"]

@@ -1,0 +1,145 @@
+{#-
+Extractors:
+  - response: AnchorExtractor("<ANSWER>", "</ANSWER>", fallback_to_full=True)
+
+Override example:
+  {{ set_anchor_extractor("response", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("response") }}
+-#}
+{# RENDERED CONTEXT (as in the conversation prompt, conversation/dialogue.jinja2) #}
+{% set rendered_context -%}
+<|SECTION:CHARACTERS|>
+{% for scene_character in scene.get_characters() %}
+### {{ scene_character.name }}
+{{ character_sheet_for(scene_character, character) }}
+
+{{ character_description_for(scene_character, character) }}
+{% endfor %}
+<|CLOSE_SECTION|>
+{% if scene.description %}
+<|SECTION:SCENE DESCRIPTION|>
+{{ scene.description }}
+<|CLOSE_SECTION|>
+{% endif -%}
+<|SECTION:ADDITIONAL INFORMATION|>
+{# the character's other states and what it knows of the others' (the one being updated is the previous value below) #}
+{% with
+  reinforcement_character=character.name if character else none,
+  reinforcement_character_inserts=["conversation-context"] if character else none,
+  reinforcement_requesting_character=character.name if character else none,
+  reinforcement_exclude=reinforcement
+%}
+{% include "extra-context-static.jinja2" %}
+{% endwith %}
+{% include "extra-context-dynamic.jinja2" %}
+<|CLOSE_SECTION|>
+{% endset %}
+{# END RENDERED CONTEXT #}
+
+{# VOLATILE CONTEXT (for budget calculation) #}
+{% set volatile_context_text %}
+{%- with memory_query=scene.snapshot(), iterate=5, exclude_history=True, exclude_shown_character_info=True -%}
+{% include "memory-query.jinja2" %}
+{% endwith %}
+{% endset %}
+{# END VOLATILE CONTEXT #}
+
+{# PREPARE SCENE HISTORY #}
+{% set rendered_context_tokens = count_tokens(rendered_context) %}
+{% set volatile_context_tokens = count_tokens(volatile_context_text) %}
+{% set scene_history = scene.context_history(budget=max_tokens-200-rendered_context_tokens-volatile_context_tokens, keep_context_investigation=False) -%}
+{% set last_message = scene_history[-1] %}
+{% set last_message_is_reinforcement = ("internal notes" in last_message.lower() and question in last_message) %}
+{% if not last_message_is_reinforcement %}{% set final_line_number=len(scene_history) %}{% else %}{% set final_line_number=len(scene_history)-1 %}{% endif %}
+{# END PREPARE SCENE HISTORY #}
+
+{# BUILD SCENE CONTEXT TEXT #}
+{% set scene_context_text %}
+{% for scene_context in scene_history -%}
+{% if not (loop.last and last_message_is_reinforcement) -%}
+{{ loop.index }}. {{ scene_context }}
+{% endif -%}
+{% endfor -%}
+{% if not scene.history -%}
+No dialogue so far
+{% endif -%}
+{% endset %}
+{# END BUILD SCENE CONTEXT TEXT #}
+
+{# RENDER PROMPT #}
+{% set volatile_placement = volatile_context_placement() %}
+{{ rendered_context }}
+{% if volatile_placement != "after_history" %}
+{{ volatile_context_text }}
+{% endif %}
+<|SECTION:SCENE|>
+{{ scene_context_text }}
+<|CLOSE_SECTION|>
+{% if volatile_placement == "after_history" %}
+{{ volatile_context_text }}
+{% endif %}
+
+{% include "writing-style-instructions.jinja2" %}
+
+<|SECTION:TASK|>
+{# QUESTION #}
+{%- if question.strip()[-1] == '?' %}
+Shortly answer the following question: {{ question }}
+
+Consider the entire context and honor the sequentiality of the dialogue. Answer based on the final state of the dialogue.
+
+Progression of the dialogue is important. The last line is the most important, the first line is the least important.
+
+Respect the scene progression and answer in the context of line {{ final_line_number }}.
+
+Use your imagination to fill in gaps in order to answer the question in a confident and decisive manner. Avoid uncertainty and vagueness.
+You are omniscient and can describe the scene in detail.
+
+{% if reinforcement.insert == 'sequential' %}
+PROVIDE A SUCCINCT ANSWER TO THE QUESTION.
+YOUR ANSWER MUST BE SHORT AND TO THE POINT.
+YOUR ANSWER MUST BE A SINGLE SENTENCE.
+YOUR ANSWER IS CONFIDENT, MAKE CREATIVE CHOICES AS NEEDED.
+{% endif %}
+{% if instructions %}
+{{ instructions }}
+{% endif %}
+The tone of your answer must be consistent with the tone of the story so far.
+
+Provide your answer wrapped in <ANSWER> tags like this: <ANSWER>your answer here</ANSWER>
+
+Question: {{ question }}  (At line {{ final_line_number }} in the scene progression)
+{% if answer %}Previous Answer: {{ answer }}
+{% endif -%}
+<|CLOSE_SECTION|>
+{{ set_prepared_response("<ANSWER>") }}
+{# ATTRIBUTE #}
+{%- else %}
+Generate the following attribute{% if character %} for {{ character.name }}{% endif %}: {{ question }}
+
+Consider the entire context and honor the sequentiality of the dialogue. Answer based on the final state of the dialogue.
+
+Progression of the dialogue is important. The last line is the most important, the first line is the least important.
+
+Respect the scene progression and answer in the context of line {{ final_line_number }}.
+
+Use your imagination to fill in gaps in order to generate the attribute in a confident and decisive manner. Avoid uncertainty and vagueness.
+You are omniscient and can describe the scene in detail.
+
+{% if reinforcement.insert == 'sequential' %}
+YOUR ANSWER MUST BE SHORT AND TO THE POINT.
+YOUR ANSWER MUST BE A SINGLE SENTENCE.
+YOUR ANSWER IS CONFIDENT, MAKE CREATIVE CHOICES AS NEEDED.
+{% endif %}
+{% if instructions %}
+{{ instructions }}
+{% endif %}
+The tone of your answer must be consistent with the tone of the story so far.
+
+Provide your answer wrapped in <ANSWER> tags like this: <ANSWER>your answer here</ANSWER>
+
+{% if answer %}Previous Value: {{ answer }}
+{% endif-%}
+<|CLOSE_SECTION|>
+{{ set_prepared_response("<ANSWER>") }}
+{%- endif %}

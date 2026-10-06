@@ -1,0 +1,58 @@
+{#-
+Extractors:
+  - analysis: AnchorExtractor("<ANALYSIS>", "</ANALYSIS>") [required]
+  - investigate: AnchorExtractor("<INVESTIGATE>", "</INVESTIGATE>")
+
+Override example:
+  {{ set_anchor_extractor("analysis", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("analysis") }}
+-#}
+{% include "scene-context.jinja2" %}
+{% include "scene-intent.jinja2" %}
+<|SECTION:TASK|>
+{% set bullet_num=0 %}
+{% set character=agent_context_state["narrator__character"] %}
+{% set last_message = scene.last_message_of_type(["character", "narrator"]) %}
+{# Query narration #}{% if agent_context_state["narrator__query_narration"] %}
+{% include "analyze-scene-for-next-narration-query.jinja2" %}
+{# Sensory narration #}{% elif agent_context_state["narrator__sensory_narration"] %}
+{% include "analyze-scene-for-next-narration-sensory.jinja2" %}
+{# Time narration #}{% elif agent_context_state["narrator__time_narration"] %}
+{% include "analyze-scene-for-next-narration-time.jinja2" %}
+{# Visual narration - Character #}{% elif agent_context_state["narrator__visual_narration"] and character %}
+{% with character=character -%}
+    {% include "analyze-scene-for-next-narration-visual-character.jinja2" %}
+{% endwith %}
+{# Visual narration #}{% elif agent_context_state["narrator__visual_narration"] %}
+{% with last_message=last_message -%}
+    {% include "analyze-scene-for-next-narration-visual.jinja2" %}
+{% endwith %}
+{# Progressive narration - Character Entry #}{% elif agent_context_state["narrator__fn_narrate_character_entry"] %}
+{% with character=character -%}
+    {% include "analyze-scene-for-next-narration-progress-character-entry.jinja2" %}
+{% endwith %}
+{# Progressive narration - Character Exit #}{% elif agent_context_state["narrator__fn_narrate_character_exit"] %}
+{% with character=character -%}
+    {% include "analyze-scene-for-next-narration-progress-character-exit.jinja2" %}
+{% endwith %}
+{# Progressive narration #}{% else %}
+{% include "analyze-scene-for-next-narration-progress.jinja2" %}
+{# Common instructions #}{% endif %}
+
+{% if length <= 256 %}Your analysis should be 1 - 2 paragraphs long.{% elif length <= 512 %}Your analysis should be 2 - 3 paragraphs long.{% endif %}
+
+Be muted and objective in your analysis.
+
+The information you write will be given to the story editors to write the next narrative segment.
+{% if length <= 512 %}Use terse, direct language. Cut all unnecessary words. Be blunt and brief like scribbles on a notepad.{% endif %}
+
+No markdown formatting, provide simple plain text.
+
+Provide your response in the following format:
+
+<ANALYSIS>... your analysis ...</ANALYSIS>
+{% if deep_analysis %}
+<INVESTIGATE>... describe what specific information from long-term memory would be useful to retrieve to deepen the understanding of this moment. Be specific about what facts, events, or character history would be most valuable. ...</INVESTIGATE>
+{% endif %}
+<|CLOSE_SECTION|>
+{{ set_prepared_response("<ANALYSIS>", fallback="") }}

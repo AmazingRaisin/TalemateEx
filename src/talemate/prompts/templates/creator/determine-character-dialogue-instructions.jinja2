@@ -1,0 +1,50 @@
+{#-
+Extractors:
+  - response: AsIsExtractor()
+
+Override example:
+  {{ set_anchor_extractor("response", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("response") }}
+-#}
+{% set extra_context_content %}
+<|SECTION:CHARACTER|>
+{{ character_sheet_for(character, local_character|default(none)) }}
+{{ character_description_for(character, local_character|default(none)) }}
+<|CLOSE_SECTION|>
+{% include "task-information.jinja2" %}
+{% endset %}
+{% set extra_context_tokens = count_tokens(extra_context_content) %}
+{% set budget=max_tokens-300-extra_context_tokens %}
+{% with budget=budget %}{% include "scene-context.jinja2" %}{% endwith -%}
+{{ extra_context_content }}
+{% if update_existing and character.dialogue_instructions -%}
+<|SECTION:UPDATE EXISTING|>
+You are updating the existing dialogue instructions for {{ character.name }}, which are currently:
+
+```
+{{ character.dialogue_instructions }}
+```
+<|CLOSE_SECTION|>
+{% endif -%}
+<|SECTION:TASK|>
+Your task is to determine fitting dialogue instructions for {{ character.name }}.
+
+By default all actors are given the following instructions for their character(s):
+
+Dialogue instructions: "Use an informal and colloquial register with a conversational tone. Overall, {{ character.name }}'s dialog is informal, conversational, natural, and spontaneous, with a sense of immediacy."
+
+However you can override this default instruction by providing your own instructions below.
+
+{{ character.name }} is a character in {{ scene.context }}. The goal is always for {{ character.name }} to feel like a believable character in the context of the scene.
+
+The character MUST feel relatable to the audience.
+
+You must use simple language to describe the character's dialogue instructions.
+
+Keep the format similar and stick to one paragraph.
+
+{% if instructions -%}
+{{ instructions }}
+{% endif -%}
+<|CLOSE_SECTION|>
+{{ bot_token }}Dialogue instructions:

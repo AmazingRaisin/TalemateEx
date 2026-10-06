@@ -1,0 +1,44 @@
+{
+  "name": "talemate_frontend",
+  "version": "0.36.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "vite",
+    "build": "vite build"
+  },
+  "dependencies": {
+    "@codemirror/lang-json": "^6.0.1",
+    "@codemirror/lang-markdown": "^6.2.5",
+    "@codemirror/lang-yaml": "^6.1.2",
+    "@codemirror/language-data": "^6.5.1",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/theme-one-dark": "^6.1.2",
+    "@codemirror/view": "^6.37.1",
+    "@mdi/font": "7.4.47",
+    "core-js": "^3.37.1",
+    "dot-prop": "^9.0.0",
+    "litegraph.js": "^0.7.18",
+    "lodash": "^4.17.21",
+    "marked": "^15.0.12",
+    "roboto-fontface": "*",
+    "uuid": "^10.0.0",
+    "vue": "^3.5",
+    "vue-codemirror": "^6.1.1",
+    "vuetify": "^3.10",
+    "webfontloader": "^1.6.28"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.0",
+    "postcss": "^8.5.3",
+    "vite": "^7.0.4",
+    "vite-plugin-runtime-env": "^1.0.0",
+    "vite-plugin-vuetify": "^2.1.1"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ]
+}

@@ -1,0 +1,63 @@
+{#-
+Extractors:
+  - fix: AnchorExtractor("<FIX>", "</FIX>")
+
+Override example:
+  {{ set_anchor_extractor("fix", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("fix") }}
+-#}
+## Examples
+
+<REVIEW>
+"G-Get lost..." ... She whispers the words with a tentative, fragile tremor, testing them out as if they were a new piece of clothing that didn't quite fit. She looks up at him, her grey eyes searching for approval, then glances back at the students with a flicker of something new—not quite confidence, but a desperate curiosity. "IL laL la la laL l la d l l'veL deL de la L L la laL laL deL de L s-stillL de la L d laL L s-scared... but... it feels... different... to say it..." ... She whispers this in a barely audible tone, her small frame still trembling as she leans into his shadow.
+</REVIEW>
+
+<FIX>
+"G-Get lost..." ... She whispers the words with a tentative, fragile tremor, testing them out as if they were a new piece of clothing that didn't quite fit. She looks up at him, then glances back at the students. "I s-still s-scared... but... it feels... different... to say it..." ... She whispers this in a barely audible tone, her small frame still trembling as she leans into his shadow.
+</FIX>
+
+---
+
+<REVIEW>
+"HELLO! Mother! I haveL returned from my educational institution," said Tim.
+"EXCELLENT. Did you successfullyS complete your mathematical assignments?" she responded.
+"Affirmative. I achieved a scoreL of ninety-two percent onL my algebraic examination."
+"That is most satisfactory. PleaseS proceed to consume your afternoon snack in the kitchen area."
+</REVIEW>
+
+<FIX>
+"HELLO! Mother! I have returned from my educational institution," said Tim.
+"EXCELLENT. Did you successfully complete your mathematical assignments?" she responded.
+"Affirmative. I achieved a score of ninety-two percent on my algebraic examination."
+"That is most satisfactory. Please proceed to consume your afternoon snack in the kitchen area."
+</FIX>
+
+---
+
+<REVIEW>
+She reaches for the door elliShandle. Her index finger extends first, followed by her middle finger, then her ring finger, elliSand finally her pinky. Her elliSelliSthumb moves to oppose them. The metal is cool to the touch, approximately 68 degrees elliSFahrenheit. She grips it with 3.2 pounds of pressure and rotates her wrist 47 degrees clockwise.
+</REVIEW>
+
+<FIX>
+She reaches for the door handle. Her index finger extends first, followed by her middle finger, then her ring finger, and finally her pinky. Her thumb moves to oppose them. The metal is cool to the touch, approximately 68 degrees Fahrenheit. She grips it with 3.2 pounds of pressure and rotates her wrist 47 degrees clockwise.
+</FIX>
+
+---
+
+<REVIEW>
+"Hey, you okay?" Sarah asked, noticing the dark circles under his eyes.
+Marcus shrugged. "Just tired. Been working late on the Morrison case."
+"That bad?"
+</REVIEW>
+
+<NO_FIX_REQUIRED/>
+
+---
+
+If there are no changes needed use a <NO_FIX_REQUIRED/> tag.
+
+If there are changes needed, provide the fix in the <FIX>...</FIX> block.
+
+<REVIEW>{{ text }}</REVIEW>
+
+{{ set_prepared_response("<ANALYSIS>\n- Thought process") }}

@@ -1,0 +1,36 @@
+agents: {}
+clients: {}
+creator:
+  content_context:
+  - a fun and engaging slice of life story
+  - a terrifying horror story
+  - a thrilling action story
+  - a mysterious adventure
+  - an epic sci-fi adventure
+
+## Long-term memory
+## Embeddings are now managed through the application UI
+## See: Presets -> Embeddings in the application settings
+
+## Remote LLMs
+
+#openai:
+#  api_key: <API_KEY>
+
+#runpod:
+#  api_key: <API_KEY>
+
+## TTS (Text-to-Speech)
+
+#elevenlabs:
+#  api_key: <API_KEY>
+
+#coqui:
+#  api_key: <API_KEY>
+
+#tts:
+#  device: cuda
+#  model: tts_models/multilingual/multi-dataset/xtts_v2
+#  voices:
+#  - label: <name>
+#    value: <path to .wav for voice sample>

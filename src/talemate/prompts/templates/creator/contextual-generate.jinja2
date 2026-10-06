@@ -1,0 +1,131 @@
+{#-
+Extractors:
+  - response: AsIsExtractor()
+
+Override example:
+  {{ set_anchor_extractor("response", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("response") }}
+-#}
+{#
+  CONTEXTUAL GENERATE
+
+  Multi-purpose content generation template that handles various context types.
+  Dispatches to specific task templates based on context_typ.
+
+  Required variables:
+    - context_typ: Type of content to generate
+    - context_name: Name/label for the content
+    - context_aware: Whether to include full context
+    - history_aware: Whether to include scene history
+    - generation_context: Generation settings and state
+    - can_coerce: Whether model supports response coercion
+#}
+
+{# CONFIGURATION FLAGS #}
+{% set exclude_phase_intent = context_typ in ['scene phase intent', 'scene type description', 'scene type instructions'] %}
+{% set include_scene_types = context_typ in ['scene phase intent', 'scene type description', 'scene type instructions'] %}
+{% set include_other_characters = context_typ in ['character attribute', 'character detail', 'scene intro'] %}
+{% set include_scene_description = context_typ == 'scene intro' %}
+{% set include_memory_context = context_typ in ['character attribute', 'character detail', 'character dialogue', 'world context', 'static history'] and generation_context.instructions %}
+{# END CONFIGURATION FLAGS #}
+
+{# ACTION TASK DETERMINATION #}
+{% if not generation_context.original %}
+  {% set action_task = "Generate the" %}
+{% elif context_typ == "list" and generation_context.original and generation_context.instructions %}
+  {% if generation_context.get_state('extend') or query_text_eval("Does the user want to add to the existing list", generation_context.instructions) %}
+    {% set action_task = "Add to the existing" %}
+    {% set _ = generation_context.set_state('extend', true) %}
+  {% else %}
+    {% set action_task = "Rewrite the existing" %}
+  {% endif %}
+{% else %}
+  {% set action_task = "Rewrite the existing" %}
+{% endif %}
+{# END ACTION TASK DETERMINATION #}
+
+{# CONTEXT RENDERING #}
+{% include "contextual-generate/context-rendering.jinja2" %}
+{# END CONTEXT RENDERING #}
+
+{# MEMORY CONTEXT #}
+{% if include_memory_context %}
+{% with memory_prompt = generation_context.instructions %}{% include "memory-context.jinja2" %}{% endwith %}
+{% endif %}
+{# END MEMORY CONTEXT #}
+
+{# STATIC HISTORY CONTEXT #}
+{% if context_typ == "static history" %}
+<|SECTION:STATIC HISTORY|>
+{%- for entry in scene.archived_history | reverse -%}
+{%- if entry.get('start') is none and entry.get('end') is none -%}
+- {{ time_diff(entry.get('ts')) }}: {{ entry.get('text') }}{% if generation_context.original and entry.get('text') == generation_context.original %} (YOU ARE EDITING THIS ENTRY){% endif %}
+{%- endif -%}
+{%- endfor -%}
+<|CLOSE_SECTION|>
+{% endif %}
+{# END STATIC HISTORY CONTEXT #}
+
+{# ORIGINAL CONTENT #}
+{% if generation_context.original %}
+<|SECTION:ORIGINAL {{ context_name }}|>
+{{ generation_context.original }}
+<|CLOSE_SECTION|>
+{% endif %}
+{# END ORIGINAL CONTENT #}
+
+{# DYNAMIC INSTRUCTIONS #}
+{% include "dynamic-instructions.jinja2" %}
+{# END DYNAMIC INSTRUCTIONS #}
+
+{# INFORMATION #}
+{% with information=generation_context.information %}{% include "task-information.jinja2" %}{% endwith %}
+{# END INFORMATION #}
+
+{# TASK DISPATCH #}
+<|SECTION:TASK|>
+{% if context_typ == "list" %}
+  {% include "contextual-generate/task-list.jinja2" %}
+{% elif context_typ == "character attribute" %}
+  {% include "contextual-generate/task-character-attribute.jinja2" %}
+{% elif context_typ == "character detail" %}
+  {% include "contextual-generate/task-character-detail.jinja2" %}
+{% elif context_typ == "scene intent" %}
+  {% include "contextual-generate/task-scene-intent.jinja2" %}
+{% elif context_typ == "scene phase intent" %}
+  {% include "contextual-generate/task-scene-phase-intent.jinja2" %}
+{% elif context_typ == "scene type description" %}
+  {% include "contextual-generate/task-scene-type-description.jinja2" %}
+{% elif context_typ == "scene type instructions" %}
+  {% include "contextual-generate/task-scene-type-instructions.jinja2" %}
+{% elif context_typ == "character dialogue" %}
+  {% include "contextual-generate/task-character-dialogue.jinja2" %}
+{% elif context_typ == "scene intro" %}
+  {% include "contextual-generate/task-scene-intro.jinja2" %}
+{% elif context_typ == "world context" %}
+  {% include "contextual-generate/task-world-context.jinja2" %}
+{% elif context_typ == "scene title" %}
+  {% include "contextual-generate/task-scene-title.jinja2" %}
+{% elif context_typ == "static history" %}
+  {% include "contextual-generate/task-static-history.jinja2" %}
+{% elif context_typ == "writing_style" %}
+  {% include "contextual-generate/task-writing-style.jinja2" %}
+{% else %}
+  {% include "contextual-generate/task-general.jinja2" %}
+{% endif %}
+
+{# SHARED TASK FOOTER #}
+{{ generation_context.spice }}
+
+{% if generation_context.instructions %}
+### Editorial Instructions
+{{ generation_context.instructions }}
+{% endif %}
+
+{{ generation_context.style }}
+<|CLOSE_SECTION|>
+{# END TASK DISPATCH #}
+
+{# RESPONSE SCAFFOLDING #}
+{%- include "contextual-generate/response-scaffolding.jinja2" -%}
+{#- END RESPONSE SCAFFOLDING -#}

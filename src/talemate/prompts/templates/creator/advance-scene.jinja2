@@ -1,0 +1,116 @@
+{#-
+Advance Scene: rewrites a scene value for the current point of the story
+(talemate.agents.creator.advance_scene).
+
+Variables:
+  - info_type: scene_description, story_intention, phase_intention,
+    description_override, intention_override (what each one is, and how it is
+    written, is in advance-scene/<info-type>.jinja2)
+  - info_label: what is rewritten, as the prompt calls it
+  - info_title: what is rewritten, as the world editor calls it
+  - target_name: whose override it is (a character, a group, or several
+    characters sharing it), none for the scene's own values
+  - characters: [{name, sheet, description}], as the prompt may see them
+  - locations: where people are
+  - states: the state reinforcements, as context lines
+  - context_values: [{title, value}], the values rewritten before this one
+  - scene_type: {name, description} of the current scene, if there is one
+  - old_value: the value to rewrite
+  - paragraphs, words: how long the answer may be
+
+Extractors:
+  - response: AnchorExtractor("<ANSWER>", "</ANSWER>", fallback_to_full=True)
+-#}
+{% set subject = info_label ~ (" for " ~ target_name if target_name else "") -%}
+{# RENDERED CONTEXT #}
+{% set rendered_context -%}
+<|SECTION:QUICK SUMMARY OF TASK TO COMPLETE|>
+Update the old {{ subject }} so that it matches the current point in time of the story, rather than the start of the story.
+
+More instructions are given below in the task section.
+<|CLOSE_SECTION|>
+<|SECTION:CHARACTERS|>
+{% for character in characters %}
+### {{ character.name }}
+{{ character.sheet }}
+
+{{ character.description }}
+{% endfor %}
+<|CLOSE_SECTION|>
+{% for item in context_values %}
+<|SECTION:{{ item.title|upper }}|>
+{{ item.value }}
+<|CLOSE_SECTION|>
+{% endfor %}
+{% if locations or states %}
+<|SECTION:ADDITIONAL INFORMATION|>
+{% if locations %}
+{{ locations }}
+
+{% endif %}
+{% for state in states %}
+{{ state }}
+
+{% endfor %}
+<|CLOSE_SECTION|>
+{% endif %}
+{% endset %}
+{# END RENDERED CONTEXT #}
+
+{# PREPARE SCENE HISTORY #}
+{% set rendered_context_tokens = count_tokens(rendered_context) + count_tokens(old_value) %}
+{% set history_budget = max(max_tokens - 600 - rendered_context_tokens - words * 2, 256) %}
+{% set scene_history = scene.context_history(budget=history_budget, keep_context_investigation=False) -%}
+{% set final_line_number = len(scene_history) %}
+{# END PREPARE SCENE HISTORY #}
+
+{{ rendered_context }}
+<|SECTION:SCENE|>
+Events and dialogue in chronological order, from the top (oldest) to the bottom (newest).
+
+{% for scene_context in scene_history -%}
+{{ loop.index }}. {{ scene_context }}
+{% endfor -%}
+{% if not scene_history -%}
+No dialogue so far
+{% endif -%}
+<|CLOSE_SECTION|>
+
+{% include "writing-style-instructions.jinja2" %}
+
+<|SECTION:TASK|>
+Rewrite and update the following value, the {{ subject }}, so that it matches the current state of the story so far. The old {{ info_label }} dealt with the beginning of the story, but now it is out of date and not completely related to what is happening at the present time in the story.
+
+{% include "advance-scene/" ~ (info_type|replace("_", "-")) ~ ".jinja2" %}
+
+Consider the entire context and honor the sequentiality of the dialogue. Answer based on the final state of the dialogue.
+
+Progression of the dialogue is important. The last line is the most important, the first line is the least important.
+{% if final_line_number %}
+
+Respect the scene progression and answer in the context of line {{ final_line_number }}.
+{% endif %}
+
+Use your imagination to fill in gaps in order to generate the {{ info_label }} in a confident and decisive manner. Avoid uncertainty and vagueness.
+{% if target_name -%}
+Write it only from what is known to {{ target_name }}: leave out anything not witnessed by or told to {{ target_name }}.
+{%- else -%}
+You are omniscient and can describe the scene in detail.
+{%- endif %}
+
+
+Provide your answer wrapped in <ANSWER> tags like this: <ANSWER>your answer here</ANSWER>
+
+Previous {{ info_label }} value to rewrite (the full value, wrapped in a code block):
+
+```
+{{ old_value }}
+```
+
+Again, as a reminder, your answer must be wrapped in <ANSWER> tags like this: <ANSWER>your answer here</ANSWER>
+
+{# its own length instruction: the client doesn't add its generic one #}
+{{- set_response_length_instructions() -}}
+The length of your response must fit within {{ paragraphs }} paragraph{% if paragraphs != 1 %}s{% endif %} (about {{ words }} words).
+<|CLOSE_SECTION|>
+{{ set_prepared_response("<ANSWER>") }}

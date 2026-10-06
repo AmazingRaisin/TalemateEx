@@ -1,0 +1,41 @@
+{#-
+Extractors:
+  - analysis: AnchorExtractor("<ANALYSIS>", "</ANALYSIS>") [required]
+  - investigate: AnchorExtractor("<INVESTIGATE>", "</INVESTIGATE>")
+
+Override example:
+  {{ set_anchor_extractor("analysis", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("analysis") }}
+-#}
+Your task is to analyze the current moment in the scene to guide natural narrative progression.
+{% set narrative_direction = agent_context_state.get("narrator__narrative_direction") or "Slightly move the current scene forward." %}
+{% if narrative_direction %}The story editors were given the following direction: "{{ narrative_direction }}".
+{{ li() }}. Briefly analyse the direction, what does it mean?
+{{ li() }}. Briefly describe how you will help the editors to write the next narrative segment that fulfills the direction.
+{% endif -%}
+{{ li() }}. Brielfy list who the characters in the scene are to each other. (Active or referenced)
+
+{%- if last_message %}
+{{ li() }}. Briefly explain the meaning of the current moment in the scene.
+  - Where are we?
+  - What are we doing?
+  - What is the meaning of the current moment and what was the meaning of their dialogue and actions? 
+
+``` the current moment in the scene
+{{ last_message }}
+```
+
+{{ li() }}. What specific problems do the characters have to solve in the immediate future. The immediate future means within the next 30 minutes. This isn't about grand unspecified problems like "They need to survive" but instead should be specific tangible problems.
+{% endif %}
+
+{% if scene.intent_state.active %}
+{% with task_instructions="How does the scene intention inform the meaning of this moment and what could it mean for natural story progression?" -%}
+{{ li() }}. {% include "scene-intent-inline.jinja2" %}
+{% endwith %}
+{% endif %}
+
+{% if length >= 512 %}
+{{ li() }}. Briefly list any relevant bits of information from the "Potentially relevant information" section. Skip this step if there aren't any.
+
+Note that the 'Potentially relevant information' section has been filled in from a previous prompt and may not be relevant at all.
+{% endif %}

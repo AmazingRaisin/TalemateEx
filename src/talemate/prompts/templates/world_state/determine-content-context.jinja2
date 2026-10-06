@@ -1,0 +1,28 @@
+{#-
+Extractors:
+  - response: AsIsExtractor()
+
+Override example:
+  {{ set_anchor_extractor("response", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("response") }}
+-#}
+<|SECTION:CONTENT|>
+"""
+{{ content }}
+"""
+<|CLOSE_SECTION|>
+<|SECTION:TASK|>
+Analyze the content within the triple quotes and determine a fitting content context.
+
+The content context should be a single short phrase classification that describes the expected experience when reading this content, it should also be generic and overarching and excite the reader to keep reading.
+
+Choices:
+
+{% for content_context in config.creator.content_context -%}
+- {{ content_context }}
+{% endfor -%}
+{% for content_context in extra_choices -%}
+- {{ content_context }}
+{% endfor -%}
+<|CLOSE_SECTION|>
+{{ bot_token }}Content context:

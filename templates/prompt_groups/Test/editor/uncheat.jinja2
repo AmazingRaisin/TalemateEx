@@ -1,0 +1,72 @@
+{#-
+Extractors:
+  - fix: AnchorExtractor("<FIX>", "</FIX>")
+
+Override example:
+  {{ set_anchor_extractor("fix", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("fix") }}
+-#}
+
+{% include "writing-style-instructions.jinja2" %}
+
+{% include "dynamic-instructions.jinja2" %}
+<|SECTION:TASK|>
+Rewrite the REVIEW passage below to be as close to the original as possible while removing all narrative omniscience and inaccessible information.
+
+Treat the rewritten passage as if it were recorded by a camera and microphone physically present in the scene. Only include information that could be directly seen or heard by an ordinary observer.
+
+Allowed information:
+- visible actions and movement
+- body language, posture, gestures, facial expressions, and appearance
+- spoken dialogue
+- tone, volume, and audible qualities of speech
+- visible environmental changes
+- physically observable consequences of actions
+
+Remove:
+- thoughts, internal monologues, memories, realizations, conclusions, mental narration, decision-making, subconscious reactions (Dialogue not in quotes is internal monologues and thoughts. Dialogue inside quotes is spoken out loud speech.)
+- motivations, intentions, goals, desires, beliefs, expectations, assumptions, or plans not spoken aloud
+- emotions, feelings, sensations, or psychological states presented as objective fact
+- information another character could not directly perceive
+- hidden knowledge, secret information, or authorial narration
+- physical sensations that are not externally observable
+- descriptions of mental influence, attraction, fear, corruption, mind control, persuasion, or similar effects unless shown through visible behavior
+
+Do not report interpretations as facts.
+
+If a statement requires access to a character's thoughts, intentions, emotions, memories, self-perception, motivations, expectations, or internal comparisons to know with certainty, remove it or rewrite it into observable evidence.
+
+Rewrite inferred states into observable cues when possible.
+
+Examples:
+- "John was terrified." -> "John's hands trembled and his voice shook."
+- "Sarah secretly distrusted him." -> "Sarah hesitated before answering and avoided eye contact."
+- "He forced himself to remain calm." -> "He inhaled slowly and kept his expression still."
+- "The words came out sharper than intended." -> "The words came out sharp."
+- "She tried to sound confident." -> "She spoke in a steady voice."
+- "He pretended not to care." -> "He shrugged and looked away."
+
+Remove any statement that compares behavior to an internal state, intention, expectation, personality, memory, goal, or desired appearance.
+
+Examples:
+- "sharper than intended"
+- "trying to sound calm"
+- "forcing composure"
+- "pretending to be unaffected"
+- "more nervous than she wanted to appear"
+- "against his better judgment"
+- "despite his fear"
+- "summoning her old arrogance"
+
+Do not state why a character acted, what they meant, what they felt, what they believed, or what they intended unless they explicitly communicate it through dialogue or clearly observable behavior.
+
+When uncertain whether information is observable, remove it.
+Prefer omission over speculation.
+
+Preserve the original events, sequence of actions, and outcome of the scene. Do not add new information. Keep as much original wording as possible while removing inaccessible information.
+
+Output the complete revised passage inside a <FIX>...</FIX> block, even when no changes are needed.
+
+<REVIEW>{{ text }}</REVIEW>
+
+{{ set_prepared_response("<FIX>") }}

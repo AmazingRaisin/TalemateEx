@@ -1,0 +1,66 @@
+{
+  "assets": {
+    "46fa6b63cc2cdee882e469150535df7a0be4cc18bb143a6b9041748fdb10374c": {
+      "id": "46fa6b63cc2cdee882e469150535df7a0be4cc18bb143a6b9041748fdb10374c",
+      "file_type": ".png",
+      "media_type": "image/png",
+      "meta": {
+        "name": null,
+        "vis_type": "CHARACTER_CARD",
+        "gen_type": "TEXT_TO_IMAGE",
+        "character_name": "Frieren",
+        "prompt": null,
+        "negative_prompt": null,
+        "format": "PORTRAIT",
+        "resolution": null,
+        "sampler_settings": null,
+        "reference_assets": [],
+        "tags": [],
+        "reference": [
+          "CHARACTER_PORTRAIT",
+          "CHARACTER_CARD",
+          "SCENE_CARD",
+          "SCENE_ILLUSTRATION"
+        ],
+        "analysis": null,
+        "cover_bbox": {
+          "x": 0.0,
+          "y": 0.0,
+          "w": 1.0,
+          "h": 1.0
+        }
+      }
+    },
+    "ddeb705804fea728150ffd3f47863e71592e3ee65cf052ebd5784d4baf914e44": {
+      "id": "ddeb705804fea728150ffd3f47863e71592e3ee65cf052ebd5784d4baf914e44",
+      "file_type": ".png",
+      "media_type": "image/png",
+      "meta": {
+        "name": null,
+        "vis_type": "CHARACTER_CARD",
+        "gen_type": "TEXT_TO_IMAGE",
+        "character_name": "Ayanokoji",
+        "prompt": null,
+        "negative_prompt": null,
+        "format": "PORTRAIT",
+        "resolution": null,
+        "sampler_settings": null,
+        "reference_assets": [],
+        "tags": [],
+        "reference": [
+          "CHARACTER_PORTRAIT",
+          "CHARACTER_CARD",
+          "SCENE_CARD",
+          "SCENE_ILLUSTRATION"
+        ],
+        "analysis": null,
+        "cover_bbox": {
+          "x": 0.0,
+          "y": 0.0,
+          "w": 1.0,
+          "h": 1.0
+        }
+      }
+    }
+  }
+}

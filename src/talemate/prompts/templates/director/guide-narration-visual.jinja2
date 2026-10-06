@@ -1,0 +1,22 @@
+Guide the story writer to write a visual description of the current moment in the scene.
+
+{% if last_event -%}
+Following this moment:
+```
+{{ last_event }}
+```
+{% endif %}
+
+{% include "guide-narrative-direction.jinja2" %}
+
+Help them achieve this by pointing them toward WHAT to describe, not HOW to describe it.
+
+Keep your guidance brief and high-level. Tell the writer which elements to focus on (e.g., "the lighting," "the state of the room," "what the characters are wearing"). Do NOT suggest metaphors, figurative language, specific phrasing, or tone. Do NOT write draft descriptions. The writer will decide how to render the details.
+
+Make sure they understand the focus is a visual description of the current moment in the scene. They may describe existing elements, but should offer something not yet conveyed rather than restating descriptions already given.
+
+{% if response_length > 300 -%}
+Briefly list what key elements should be included in the description, based on the scene analysis. Keep it to short pointers, not prose.
+{% endif %}
+
+Let them know they have creative freedom to invent new details that fit the scene, however they MUST NOT move the story forward.

@@ -1,0 +1,18 @@
+{#-
+Extractors:
+  - response: AsIsExtractor()
+
+Override example:
+  {{ set_anchor_extractor("response", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("response") }}
+-#}
+{% with include_character_context=True, skip_characters=[character.name], feature_character=character %}
+{% include "narrate-context.jinja2" %}
+{% endwith %}
+<|SECTION:TASK|>
+Narrate the entrance of {{ character.name }} into the scene. {% if not narrative_direction %}Make a creative decision on how {{ character.name }} enters the scene. It must be in line with the content so far.{% endif %}
+
+{% include "narrative-direction.jinja2" %}
+
+{{ extra_instructions }}
+<|CLOSE_SECTION|>

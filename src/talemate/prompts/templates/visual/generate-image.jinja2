@@ -1,0 +1,22 @@
+{% set quick_illustration = vis_type == "SCENE_ILLUSTRATION" and agent_config("visual.prompt_generation.quick_illustration") %}
+{% if quick_illustration %}
+{% include "generate-image-SCENE_ILLUSTRATION-quick.jinja2" %}
+{% include "generate-image-prompt-type.jinja2" %}
+{% if visual_prompt.instructions %}{{ visual_prompt.instructions }}{% endif %}
+{% else %}
+{% set general_context %}
+<|SECTION:GENERAL CONTEXT|>
+{% include "extra-context.jinja2" %}
+<|CLOSE_SECTION|>
+{% endset %}
+{% set vis_type_instructions %}
+{% set vis_type_template = "generate-image-"+vis_type+".jinja2" %}
+{% include vis_type_template %}
+{% include "generate-image-prompt-type.jinja2" %}
+{% if visual_prompt.instructions%}{{ visual_prompt.instructions }}{% endif %}
+
+{% endset %}
+{{ general_context }}
+{{ vis_type_instructions }}
+{% endif %}
+{% if llm_can_be_coerced() %}{{ set_prepared_response("<KEYWORDS>") }}{% endif %}

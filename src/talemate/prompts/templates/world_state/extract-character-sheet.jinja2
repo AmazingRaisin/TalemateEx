@@ -1,0 +1,100 @@
+{#-
+Extractors:
+  - response: AsIsExtractor()
+
+Override example:
+  {{ set_anchor_extractor("response", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("response") }}
+-#}
+{# DYNAMIC INSTRUCTIONS #}
+{% set dynamic_instructions %}
+{% include "dynamic-instructions.jinja2" %}
+{% endset %}
+
+{# CONTENT TEXT #}
+{% set content_text %}
+<|SECTION:CONTENT|>
+{% set scene_context_history = scene.context_history(budget=max_tokens-1024, min_dialogue=25, sections=False, keep_director=True) -%}
+{% if scene.num_history_entries < 25 %}{{ scene.description.replace("\r\n","\n") }}{% endif -%}
+{% for scene_context in scene_context_history -%}
+{{ scene_context }}
+{% endfor %}
+<|CLOSE_SECTION|>
+{% endset %}
+
+{# CHARACTER CONTEXT #}
+{% set character_context %}
+{% with skip_sheet=True %}{% include "character-context.jinja2" %}{% endwith %}
+{% endset %}
+
+{# COMMON INSTRUCTIONS #}
+{% set common_intructions %}
+{% include "writing-style-instructions.jinja2" %}
+
+You must only generate attributes for {{ name }}. You are omniscient and can describe the character in detail.
+
+Example:
+
+Name: <character name>
+Age: <age written out in text>
+Appearance: <description of appearance>
+<...>
+
+Your response MUST be a character sheet with multiple attributes.
+Format MUST be one attribute per line, with a colon after the attribute name.
+{% if max_attributes and max_attributes > 0 %}
+You MUST output at most {{ max_attributes }} attributes (lines) total.
+{% endif %}
+{% endset %}
+
+{# TASK INSTRUCTIONS #}
+{% set task_instructions %}
+<|SECTION:TASK|>
+{% if not character or (not alteration_instructions and not augmentation_instructions) %}
+{# NEW CHARACTER #}
+Generate a real world character profile for {{ name }}, one attribute per line. You are a creative writer and are allowed to fill in any gaps in the profile with your own ideas.
+Expand on interesting details.
+
+{% if text -%}
+Instructions for the character: {{ text }}
+{% endif -%}
+
+{% elif alteration_instructions %}
+{# ALTER EXISTING CHARACTER #}
+{% if text -%}{{ text }}{% endif -%}
+
+{{ character.name }}'s character profile:
+{{ character_sheet_for(character, local_character|default(none)) }}
+
+Update the character sheet with any realtime changes for {{ name }} based on the context and the following information. Add one attribute per line. You are a creative writer and are allowed to fill in any gaps in the profile with your own ideas.
+
+Treat updates as absolute, the new character sheet will replace the old one.
+
+Alteration instructions: {{ alteration_instructions }}
+
+{% elif augmentation_instructions %}
+{# AUGMENT EXISTING CHARACTER #}
+{% if text -%}{{ text }}{% endif -%}
+
+{{ character.name }}'s character profile:
+{{ character_sheet_for(character, local_character|default(none)) }}
+
+Augment the character sheet with any additional attributes that are not already present, based on the content and the following instructions.
+
+Augmentation instructions: {{ augmentation_instructions }}
+{% endif %}
+<|CLOSE_SECTION|>
+{% endset %}
+
+{% set required_instructions %}
+{{ character_context }}
+{{ content_text }}
+{{ task_instructions }}
+{{ common_intructions }}
+{% endset %}
+
+{# COMBINED TEMPLATE #}
+{{ limit_tokens(dynamic_instructions, max_tokens-count_tokens(required_instructions)) }}
+{{ required_instructions }}
+
+{{ set_prepared_response("Name: "+name+"\nAge:") }}

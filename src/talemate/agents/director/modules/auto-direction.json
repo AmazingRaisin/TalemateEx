@@ -1,0 +1,78 @@
+{
+  "title": "Auto Direction",
+  "id": "9c19c0f6-8dd6-45f2-bd4b-d65c8b5c3a9c",
+  "properties": {},
+  "x": 0,
+  "y": 0,
+  "width": 200,
+  "height": 100,
+  "collapsed": false,
+  "inherited": false,
+  "registry": "agents/director/auto-direct/AutoDirection",
+  "nodes": {
+    "b3a30594-dc36-4ccf-b818-d352530d6a3f": {
+      "title": "OUT state",
+      "id": "b3a30594-dc36-4ccf-b818-d352530d6a3f",
+      "properties": {
+        "output_type": "",
+        "output_name": "state",
+        "num": 0
+      },
+      "x": 286,
+      "y": 101,
+      "width": 210,
+      "height": 106,
+      "collapsed": false,
+      "inherited": false,
+      "registry": "core/Output",
+      "base_type": "core/Node"
+    },
+    "ecba1c67-d20c-4675-b19b-509c36822147": {
+      "title": "IN state",
+      "id": "ecba1c67-d20c-4675-b19b-509c36822147",
+      "properties": {
+        "input_type": "any",
+        "input_name": "state",
+        "input_optional": false,
+        "input_group": "",
+        "num": 0
+      },
+      "x": 26,
+      "y": 101,
+      "width": 216,
+      "height": 154,
+      "collapsed": false,
+      "inherited": false,
+      "registry": "core/Input",
+      "base_type": "core/Node"
+    }
+  },
+  "edges": {},
+  "groups": [
+    {
+      "title": "DEPRECATED MODULE",
+      "x": 1,
+      "y": 1,
+      "width": 760,
+      "height": 280,
+      "color": "#A88",
+      "font_size": 24,
+      "inherited": false
+    }
+  ],
+  "comments": [
+    {
+      "text": "Auto Direction has been replaced by scene direction and no longer does anything.\n\nThis module will not do anything, nor active it's output state.",
+      "x": 536,
+      "y": 81,
+      "width": 200,
+      "inherited": false
+    }
+  ],
+  "extends": null,
+  "base_type": "core/Graph",
+  "inputs": [],
+  "outputs": [],
+  "module_properties": {},
+  "style": null
+}

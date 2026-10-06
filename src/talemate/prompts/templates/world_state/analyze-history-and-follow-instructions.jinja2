@@ -1,0 +1,27 @@
+{#-
+Extractors:
+  - response: AsIsExtractor()
+
+Override example:
+  {{ set_anchor_extractor("response", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("response") }}
+-#}
+{% block rendered_context -%}
+{% if analysis %}
+<|SECTION:ANALYSIS|>
+{{ analysis }}
+<|CLOSE_SECTION|>
+{% endif %}
+<|SECTION:TEXT|>
+{% for entry in entries %}
+{{ time_diff(entry.get("ts_end", entry.get("ts"))) }}
+{{ entry["text"] }}
+{% endfor %}
+<|CLOSE_SECTION|>
+{% endblock %}
+<|SECTION:TASK|>
+{{ instructions }}
+
+Begin by always grounding your answer with a location, event and time, if possible.
+
+{% include "response-length.jinja2" %}

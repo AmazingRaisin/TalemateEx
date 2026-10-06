@@ -1,0 +1,38 @@
+{#-
+Extractors:
+  - analysis: AnchorExtractor("<ANALYSIS>", "</ANALYSIS>") [required]
+  - investigate: AnchorExtractor("<INVESTIGATE>", "</INVESTIGATE>")
+
+Override example:
+  {{ set_anchor_extractor("analysis", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("analysis") }}
+-#}
+Your task is to analyze the current moment in the scene to guide the story editors to create a compelling visual description of {{ character.name }} that adds fresh detail rather than restating what has already been conveyed.
+
+{{ li() }}. Give a brief overview of {{ character.name }}'s role and state in the current moment.
+
+{% if agent_context_state["narrator__narrative_direction"] %}The story editors were given the following direction: "{{ agent_context_state["narrator__narrative_direction"] }}".
+{{ li() }}. Briefly analyse the direction, what does it mean for describing {{ character.name }}?
+{{ li() }}. Briefly describe how you will help the editors emphasize visual details that fulfill the direction.
+{% endif %}
+
+{% with task_instructions="Given the overall story and scene intention, what visual details about " + character.name + " would enrich the next narrative segment with fresh perspective? Focus on aspects not yet described." -%}
+{{ li() }}. {% include "scene-intent-inline.jinja2" %}
+{% endwith %}
+
+{{ li() }}. Consider what visual information about {{ character.name }} would add something new to what's already been told:
+- What finer details about their expression, posture, or body language haven't been mentioned yet?
+- What aspects of their clothing, accessories, or carried items could be described with more specificity?
+- What subtle physical details would deepen the reader's picture of this character in this moment?
+
+{% if length >= 512 %}
+{{ li() }}. Briefly note any relevant information from the "Potentially relevant information" section that should inform the visual description of {{ character.name }}. Skip this step if there isn't anything relevant.
+
+- Known details about their appearance, clothing, or physical traits
+- Past events that may have affected how they look
+- Background information that grounds the description in established facts
+
+Note that the 'Potentially relevant information' section has been filled in from a previous prompt and may not be relevant at all.
+{% endif %}
+
+{% if length >= 1024 %}Carefully plan what visual information the story editors should include to add depth and fresh perspective to {{ character.name }}'s description, rather than restating what has already been conveyed.{% endif %}

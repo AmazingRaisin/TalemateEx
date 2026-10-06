@@ -1,0 +1,18 @@
+{# MEMORY -#}
+{% if memory_prompt is defined -%}
+{% set memory_stack = agent_action(active_agent.agent.agent_type, "rag_build", prompt=memory_prompt, sub_instruction=sub_instruction|default(""), exclude_shown_character_info=exclude_shown_character_info|default(False)) -%}
+{% else -%}
+{% set memory_stack = agent_action(active_agent.agent.agent_type, "rag_build", sub_instruction=sub_instruction|default(""), exclude_shown_character_info=exclude_shown_character_info|default(False)) -%}
+{% endif -%}
+{% if memory_stack -%}
+<|SECTION:POTENTIALLY RELEVANT INFORMATION|>
+{% for memory in memory_stack -%}
+{% if technical %}
+Context ID: `{{ memory.context_id }}`
+{% endif -%}
+{{ memory|condensed }}
+---
+{% endfor -%}
+<|CLOSE_SECTION|>
+{% endif -%}
+{# END MEMORY -#}

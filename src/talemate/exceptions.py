@@ -1,0 +1,137 @@
+__all__ = [
+    "TalemateError",
+    "TalemateInterrupt",
+    "ExitScene",
+    "RestartSceneLoop",
+    "ResetScene",
+    "GenerationCancelled",
+    "GenerationProcessingError",
+    "ReasoningResponseError",
+    "RenderPromptError",
+    "LLMAccuracyError",
+    "SceneInactiveError",
+    "UnknownDataSpec",
+    "ActedAsCharacter",
+    "AbortCommand",
+    "AbortWaitForInput",
+]
+
+
+class TalemateError(Exception):
+    pass
+
+
+class TalemateInterrupt(Exception):
+    """
+    Exception to interrupt the game loop
+    """
+
+    pass
+
+
+class ExitScene(TalemateInterrupt):
+    """
+    Exception to exit the scene
+    """
+
+    pass
+
+
+class RestartSceneLoop(TalemateInterrupt):
+    """
+    Exception to switch the scene loop
+    """
+
+    pass
+
+
+class ResetScene(TalemateInterrupt):
+    """
+    Exception to reset the scene
+    """
+
+    pass
+
+
+class GenerationCancelled(TalemateInterrupt):
+    """
+    Interrupt current scene and return action to the user
+    """
+
+    pass
+
+
+class GenerationProcessingError(TalemateError):
+    """
+    Exception to raise when there is an error processing a generation
+    """
+
+    pass
+
+
+class ReasoningResponseError(GenerationProcessingError):
+    """
+    Exception to raise when there is an error processing a reasoning response
+    """
+
+    def __init__(self):
+        super().__init__(
+            "Reasoning response pattern not found in response - this means that either the pattern is wrong, the reasoning budget is too low or the model does not support reasoning."
+        )
+
+
+class RenderPromptError(TalemateError):
+    """
+    Exception to raise when there is an error rendering a prompt
+    """
+
+    pass
+
+
+class LLMAccuracyError(TalemateError):
+    """
+    Exception to raise when the LLM response is not processable
+    """
+
+    def __init__(self, message: str, model_name: str = None):
+        if model_name:
+            message = f"{model_name} - {message}"
+
+        super().__init__(message)
+        self.model_name = model_name
+
+
+class SceneInactiveError(TalemateError):
+    """
+    Exception to raise when the scene is not active
+    """
+
+    pass
+
+
+class UnknownDataSpec(TalemateError):
+    """
+    Exception to raise when the data spec is unknown
+    """
+
+    pass
+
+
+class ActedAsCharacter(Exception):
+    """
+    Raised when the user acts as another character
+    than the main player character
+    """
+
+    def __init__(self, character_name: str, advance_scene: bool = False):
+        self.character_name = character_name
+        self.advance_scene = advance_scene
+        super().__init__(f"Acted as character: {character_name}")
+
+
+class AbortCommand(IOError):
+    pass
+
+
+class AbortWaitForInput(IOError):
+    pass

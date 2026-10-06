@@ -1,0 +1,19 @@
+{#-
+Extractors:
+  - title: AnchorExtractor("<TITLE>", "</TITLE>")
+
+Override example:
+  {{ set_anchor_extractor("title", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("title") }}
+-#}
+<|SECTION:TEXT|>
+{{ text }}
+<|CLOSE_SECTION|>
+<|SECTION:TASK|>
+Generate a short title for the text - think movie or book titles.
+
+Provide your title in a <TITLE>...</TITLE> section.
+
+Your title MUST NOT include any markup.
+<|CLOSE_SECTION|>
+{{ set_prepared_response('<TITLE>') }}

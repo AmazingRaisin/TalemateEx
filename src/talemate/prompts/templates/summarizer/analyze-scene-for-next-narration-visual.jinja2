@@ -1,0 +1,51 @@
+{#-
+Extractors:
+  - analysis: AnchorExtractor("<ANALYSIS>", "</ANALYSIS>") [required]
+  - investigate: AnchorExtractor("<INVESTIGATE>", "</INVESTIGATE>")
+
+Override example:
+  {{ set_anchor_extractor("analysis", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("analysis") }}
+-#}
+Your task is to analyze the current moment in the scene to guide the story writers to create a narrative segment that adds new visual perspective and detail to the scene, rather than simply restating descriptions already given.
+
+{% if agent_context_state["narrator__narrative_direction"] %}The story editors were given the following direction: "{{ agent_context_state["narrator__narrative_direction"] }}".
+{{ li() }}. Briefly analyse the direction, what does it mean for the visual elements?
+{{ li() }}. Briefly describe how you will help the editors emphasize visual details that fulfill the direction.
+{% endif %}
+
+{{ li() }}. Brielfy list who the characters in the scene are to each other. (Active or referenced)
+
+{% if last_message -%}
+{{ li() }}. Briefly explain the meaning of the current moment in the scene.
+
+``` current moment
+{{ last_message }}
+```
+{% endif %}
+
+{{ li() }}. Determine the visual focus of the current moment - is it centered on the characters, the environment, or both? This should guide which details deserve the most attention.
+
+{{ li() }}. Consider what visual information would add something new to what's already been told:
+- What finer details about the characters, their expressions, or body language haven't been mentioned yet?
+- What aspects of the environment could be described from a fresh angle or with more specificity?
+- What visible textures, lighting, or spatial details would deepen the reader's picture?
+- What subtle or overlooked elements of the current moment deserve attention?
+
+{% if scene.intent_state.active %}
+{% with task_instructions="Given the overall story and current scene intention, what visual details would enrich the next narrative segment with fresh perspective? Remember, you are not supposed to progress the story, but deepen the visual description of the current moment with information not yet conveyed." -%}
+{{ li() }}. {% include "scene-intent-inline.jinja2" %}
+{% endwith %}
+{% endif %}
+
+{% if length >= 512 %}
+{{ li() }}. Briefly note any relevant information from the "Potentially relevant information" section that should inform the visual description. Skip this step if there isn't anything relevant.
+
+- Known details about character appearances or the environment
+- Past events that may have changed how things look
+- Background information that grounds the description in established facts
+
+Note that the 'Potentially relevant information' section has been filled in from a previous prompt and may not be relevant at all.
+{% endif %}
+
+{% if length >= 1024 %}Carefully plan what visual information the story editors should include to add depth and fresh perspective to the current moment, rather than restating what has already been described.{% endif %}

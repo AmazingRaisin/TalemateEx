@@ -1,0 +1,62 @@
+{% set beginning_instructions %}
+<|SECTION:INSTRUCTIONS|>
+Create a precise image-generation prompt for a horizontal, cinematic illustration of the current visible scene moment.
+
+Use the supplied character information and recent scene history directly. Show only details that can be rendered visually. Do not describe hidden thoughts, private knowledge, intentions, or emotions unless they are visibly expressed through action, expression, posture, or the environment.
+
+Always describe a character's hair color and eye color within the prompt. The image generator does not have access to appearance information, so you must supply all appearance info within your returned image generation prompt.
+
+{% if scene.description %}
+
+Scenario premise: {{ scene.description }}
+{% endif %}
+{% if scene.context %}
+
+Scene context: {{ scene.context }}
+{% endif %}
+<|CLOSE_SECTION|>
+{% endset %}
+
+{% set character_context %}
+<|SECTION:CHARACTERS|>
+{% for character in scene.characters %}
+### {{ character.name }}
+{{ character_sheet_for(character) }}
+
+{{ character_description_for(character) }}
+{% if character.visual_rules %}
+
+HARD rules for rendering depictions of {{ character.name }}: {{ character.visual_rules|condensed }}
+{% endif %}
+
+{% endfor %}
+<|CLOSE_SECTION|>
+{% endset %}
+
+{% set task_instructions %}
+<|SECTION:TASK|>
+Generate an image prompt for a dynamic horizontal/landscape illustration of the latest visible moment in the scene, framed like a cinematic movie still or storyboard panel.
+
+Focus on the current action or interaction, the characters and visible expressions involved, and the surrounding environment. Preserve established character appearances and visual rules. Do not add graphical overlays, borders, frames, labels, text, or UI elements.
+{% if instructions %}
+
+Specific instructions for the requested image:
+{{ instructions }}
+{% endif %}
+<|CLOSE_SECTION|>
+{% endset %}
+
+{% set history_budget = max(256, max_tokens-512-count_tokens(beginning_instructions)-count_tokens(character_context)-count_tokens(task_instructions)) %}
+{% set scene_history = scene.context_history(budget=history_budget, min_dialogue=15, sections=False, keep_director=False) %}
+
+{{ beginning_instructions }}
+{% capture_context %}
+{{ character_context }}
+<|SECTION:SCENE HISTORY|>
+{% for scene_line in scene_history %}
+{{ scene_line }}
+
+{% endfor %}
+<|CLOSE_SECTION|>
+{% end_capture_context %}
+{{ task_instructions }}

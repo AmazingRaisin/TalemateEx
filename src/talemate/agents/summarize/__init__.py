@@ -1,0 +1,920 @@
+from __future__ import annotations
+
+import re
+import dataclasses
+
+import structlog
+from typing import TYPE_CHECKING, Literal
+import talemate.emit.async_signals
+import talemate.util as util
+from talemate.events import HistoryEvent
+from talemate.prompts import Prompt
+from .response_specs import SUMMARY_SPEC, CHUNK_CLEAN_SPEC
+from talemate.scene_message import (
+    SceneMessage,
+    DirectorMessage,
+    TimePassageMessage,
+    ContextInvestigationMessage,
+    ReinforcementMessage,
+)
+from talemate.world_state.templates import GenerationOptions
+from talemate.client import ClientBase
+from talemate.agents.base import (
+    Agent,
+    AgentAction,
+    AgentActionConfig,
+    AgentEmission,
+    AgentTemplateEmission,
+    RagBuildSubInstructionEmission,
+    optimize_prompt_caching_action,
+    set_processing,
+)
+from talemate.agents.registry import register
+from talemate.agents.memory.rag import MemoryRAGMixin
+
+from talemate.history import (
+    ArchiveEntry,
+    combine_character_names,
+    entry_character_names,
+    presence_stats,
+)
+
+from talemate.rooms import entry_room, entry_room_private, room_focus, rooms_in_use
+from .analyze_scene import SceneAnalyzationMixin
+from .context_history import ContextHistoryMixin
+from .layered_history import LayeredHistoryMixin
+from .tts_utils import TTSUtilsMixin
+
+import talemate.agents.summarize.nodes  # noqa: F401
+from talemate.agents.summarize.websocket_handler import SummarizeWebsocketHandler
+
+if TYPE_CHECKING:
+    from talemate.tale_mate import Character
+
+log = structlog.get_logger("talemate.agents.summarize")
+
+MIN_CHUNK_LINE_LENGTH = 20
+
+talemate.emit.async_signals.register(
+    "agent.summarization.before_build_archive",
+    "agent.summarization.after_build_archive",
+    "agent.summarization.rag_build_sub_instruction",
+    "agent.summarization.summarize.before",
+    "agent.summarization.summarize.after",
+)
+
+
+@dataclasses.dataclass
+class BuildArchiveEmission(AgentEmission):
+    generation_options: GenerationOptions | None = None
+
+
+@dataclasses.dataclass
+class SummarizeEmission(AgentTemplateEmission):
+    text: str = ""
+    extra_context: str | None = None
+    extra_instructions: str | None = None
+    generation_options: GenerationOptions | None = None
+    summarization_history: list[str] | None = None
+    summarization_type: Literal["dialogue", "events"] = "dialogue"
+
+
+@register()
+class SummarizeAgent(
+    MemoryRAGMixin,
+    ContextHistoryMixin,
+    LayeredHistoryMixin,
+    SceneAnalyzationMixin,
+    TTSUtilsMixin,
+    Agent,
+):
+    """
+    An agent that can be used to summarize text
+    """
+
+    agent_type = "summarizer"
+    verbose_name = "Summarizer"
+    auto_squish = False
+    websocket_handler = SummarizeWebsocketHandler
+
+    @classmethod
+    def init_actions(cls) -> dict[str, AgentAction]:
+        actions = {
+            "prompt_caching": optimize_prompt_caching_action(),
+            "archive": AgentAction(
+                enabled=True,
+                container=True,
+                icon="mdi-archive",
+                label="Summarization",
+                description="Automatically summarize scene dialogue when the number of tokens in the history exceeds a threshold. This helps keep the context history from growing too large.",
+                config={
+                    "threshold": AgentActionConfig(
+                        type="number",
+                        label="Token Threshold",
+                        description="Will summarize when the number of tokens in the history exceeds this threshold",
+                        min=512,
+                        max=64000,
+                        step=256,
+                        value=1536,
+                        graduations=[
+                            {"from": 0, "step": 128},
+                            {"from": 2048, "step": 256},
+                            {"from": 8192, "step": 512},
+                            {"from": 16384, "step": 1024},
+                        ],
+                    ),
+                    "method": AgentActionConfig(
+                        type="text",
+                        label="Summarization Method",
+                        description="Which method to use for summarization",
+                        value="balanced",
+                        choices=[
+                            {"label": "Short & Concise", "value": "short"},
+                            {"label": "Balanced", "value": "balanced"},
+                            {"label": "Lengthy & Detailed", "value": "long"},
+                            {"label": "Factual List", "value": "facts"},
+                        ],
+                    ),
+                    "include_previous": AgentActionConfig(
+                        type="number",
+                        label="Use preceeding summaries to strengthen context",
+                        description="Number of entries",
+                        note="Help the AI summarize by including the last few summaries as additional context. Some models may incorporate this context into the new summary directly, so if you find yourself with a bunch of similar history entries, try setting this to 0.",
+                        value=6,
+                        min=0,
+                        max=24,
+                        step=1,
+                    ),
+                    "instructions": AgentActionConfig(
+                        type="blob",
+                        label="Custom instructions",
+                        description="Optional instructions to guide the summarization process.",
+                        value="",
+                    ),
+                },
+            ),
+        }
+        ContextHistoryMixin.add_actions(actions)
+        LayeredHistoryMixin.add_actions(actions)
+        MemoryRAGMixin.add_actions(actions)
+        SceneAnalyzationMixin.add_actions(actions)
+        return actions
+
+    def __init__(self, client: ClientBase | None = None, **kwargs):
+        self.client = client
+
+        self.actions = SummarizeAgent.init_actions()
+
+    @property
+    def threshold(self):
+        return self.actions["archive"].config["threshold"].value
+
+    @property
+    def estimated_entry_count(self):
+        all_tokens = sum([util.count_tokens(entry) for entry in self.scene.history])
+        return all_tokens // self.threshold
+
+    @property
+    def archive_threshold(self):
+        return self.actions["archive"].config["threshold"].value
+
+    @property
+    def archive_method(self):
+        return self.actions["archive"].config["method"].value
+
+    @property
+    def archive_include_previous(self):
+        return self.actions["archive"].config["include_previous"].value
+
+    @property
+    def archive_instructions(self):
+        return self.actions["archive"].config["instructions"].value
+
+    def connect(self, scene):
+        super().connect(scene)
+        talemate.emit.async_signals.get("push_history.after").connect(
+            self.on_push_history
+        )
+
+    async def on_push_history(self, emission: HistoryEvent):
+        """
+        Called when a conversation is generated
+        """
+
+        generation_options = GenerationOptions(
+            writing_style=self.scene.writing_style,
+        )
+
+        await self.build_archive(self.scene, generation_options=generation_options)
+        await self.condense_imported_histories()
+
+    async def condense_imported_histories(self):
+        """
+        Characters' pasts (talemate.character_history, clean) that didn't fit
+        their share of a prompt get condensed a step further.
+        """
+
+        from talemate.character_history import condense_step
+
+        for character in list(self.scene.characters):
+            past = getattr(character, "imported_history", None)
+            if not past or past.mode != "clean" or not past.needs_condensing:
+                continue
+            past.needs_condensing = False
+            try:
+                await condense_step(self, character)
+            except Exception as e:
+                log.error(
+                    "condense_imported_histories", character=character.name, error=e
+                )
+
+    def clean_result(self, result):
+        if "#" in result:
+            result = result.split("#")[0]
+
+        # Removes partial sentence at the end
+        result = util.strip_partial_sentences(result)
+        result = result.strip()
+
+        return result
+
+    # RAG HELPERS
+
+    async def rag_build_sub_instruction(self):
+        # Fire event to get the sub instruction from mixins
+        emission = RagBuildSubInstructionEmission(
+            agent=self,
+        )
+        await talemate.emit.async_signals.get(
+            "agent.summarization.rag_build_sub_instruction"
+        ).send(emission)
+
+        return emission.sub_instruction
+
+    # SUMMARIZATION HELPERS
+
+    async def previous_summaries(self, entry: ArchiveEntry) -> list[str]:
+        num_previous = self.archive_include_previous
+
+        # find entry by .id
+        entry_index = next(
+            (
+                i
+                for i, e in enumerate(self.scene.archived_history)
+                if e["id"] == entry.id
+            ),
+            None,
+        )
+        if entry_index is None:
+            raise ValueError("Entry not found")
+        end = entry_index - 1
+
+        previous_summaries = []
+
+        if entry and num_previous > 0 and entry.room is not None:
+            # summaries of the room before this one (talemate.rooms)
+            return [
+                e["text"]
+                for e in self.scene.archived_history[:entry_index]
+                if e.get("room") in (entry.room, None) and e.get("text")
+            ][-num_previous:]
+
+        if entry and num_previous > 0:
+            if self.layered_history_available:
+                previous_summaries = self.compile_layered_history(
+                    include_base_layer=True, base_layer_end_id=entry.id
+                )[-num_previous:]
+            else:
+                previous_summaries = [
+                    entry.text
+                    for entry in self.scene.archived_history[end - num_previous : end]
+                ]
+
+        return previous_summaries
+
+    # SUMMARIZE
+
+    @set_processing
+    async def build_archive(
+        self, scene, generation_options: GenerationOptions | None = None
+    ):
+        end = None
+        enabled = self.actions["archive"].enabled
+
+        log.debug("build_archive", enabled=enabled)
+
+        emission = BuildArchiveEmission(
+            agent=self,
+            generation_options=generation_options,
+        )
+
+        await talemate.emit.async_signals.get(
+            "agent.summarization.before_build_archive"
+        ).send(emission)
+
+        if not enabled:
+            return
+
+        if not scene.archived_history:
+            start = 0
+            recent_entry = None
+        else:
+            recent_entry = scene.archived_history[-1]
+            if "end" not in recent_entry:
+                # permanent historical archive entry, not tied to any specific history entry
+                # meaning we are still at the beginning of the scene
+                start = 0
+            else:
+                start = recent_entry.get("end", 0) + 1
+
+        # if there is a recent entry we also collect the 3 most recentries
+        # as extra context
+
+        num_previous = self.actions["archive"].config["include_previous"].value
+        if recent_entry and num_previous > 0:
+            if self.layered_history_available:
+                extra_context = self.compile_layered_history(include_base_layer=True)[
+                    -num_previous:
+                ]
+            else:
+                extra_context = [
+                    entry["text"] for entry in scene.archived_history[-num_previous:]
+                ]
+
+        else:
+            extra_context = None
+
+        tokens = 0
+        dialogue_entries = []
+        ts = "PT0S"
+        # the entry ends at a natural boundary (time passage, change of who is
+        # present), no need to ask the AI for a good point of termination
+        natural_termination = False
+
+        # with character dependent history, entries end where who is present
+        # changes, so every entry covers events seen by the same characters
+        split_on_presence = bool(getattr(scene, "character_dependent_history", False))
+
+        def presence_of(message) -> tuple | None:
+            names = entry_character_names(message)
+            return tuple(sorted(names)) if names is not None else None
+
+        # with rooms (talemate.rooms) every room gets its own entry for the
+        # stretch, so presence only has to stay the same within each room
+        by_room = rooms_in_use(scene)
+        room_presence: dict[str | None, tuple | None] = {}
+
+        token_threshold = self.actions["archive"].config["threshold"].value
+
+        log.debug("build_archive", start=start, recent_entry=recent_entry)
+
+        if recent_entry:
+            ts = recent_entry.get("ts", ts)
+
+        # we ignore the most recent entry, as the user may still chose to
+        # regenerate it
+        for i in range(start, max(start, len(scene.history) - 1)):
+            dialogue = scene.history[i]
+
+            # log.debug("build_archive", idx=i, content=str(dialogue)[:64]+"...")
+
+            not_dialogue = isinstance(
+                dialogue,
+                (DirectorMessage, ContextInvestigationMessage, ReinforcementMessage),
+            )
+            # what only some characters perceived (e.g. unnoticed moves, what
+            # characters see arriving in a room, entirely private messages)
+            perceived_by_some = entry_room_private(dialogue) or bool(
+                (dialogue.meta or {}).get("private_only")
+            )
+
+            if not_dialogue or perceived_by_some:
+                # these messages are not part of the dialogue and should not be summarized
+                if i == start:
+                    start += 1
+                continue
+
+            if isinstance(dialogue, TimePassageMessage):
+                log.debug("build_archive", time_passage_message=dialogue)
+
+                if i == start:
+                    # time passed before the entry starts
+                    ts = util.iso8601_add(ts, dialogue.ts)
+                    log.debug(
+                        "build_archive",
+                        time_passage_message=dialogue,
+                        start=start,
+                        i=i,
+                        ts=ts,
+                    )
+                    start += 1
+                    continue
+
+                # the time passage ends the entry; the entry happened before it,
+                # so it's not part of the entry's timestamp (the next entry
+                # starts with it and adds it)
+                log.debug("build_archive", time_passage_message_termination=dialogue)
+                natural_termination = True
+                end = i - 1
+                break
+
+            if by_room:
+                room = entry_room(dialogue)
+                presence_changed = (
+                    room in room_presence
+                    and presence_of(dialogue) != room_presence[room]
+                )
+                room_presence.setdefault(room, presence_of(dialogue))
+            else:
+                presence_changed = bool(dialogue_entries) and presence_of(
+                    dialogue
+                ) != presence_of(dialogue_entries[0])
+
+            if split_on_presence and dialogue_entries and presence_changed:
+                log.debug("build_archive", presence_change_termination=dialogue)
+                natural_termination = True
+                end = i - 1
+                break
+
+            tokens += util.count_tokens(dialogue.message_for_history(scene))
+            dialogue_entries.append(dialogue)
+            if tokens > token_threshold:  #
+                end = i
+                break
+
+        if end is None:
+            # nothing to archive yet
+            log.debug("build_archive", token_threshold=token_threshold, tokens=tokens)
+            return
+
+        log.debug(
+            "build_archive",
+            start=start,
+            end=end,
+            ts=ts,
+            natural_termination=natural_termination,
+        )
+
+        # in order to summarize coherently, we need to determine if there is a favorable
+        # cutoff point (e.g., the scene naturally ends or shifts meaninfully in the middle
+        # of the  dialogue)
+        #
+        # One way to do this is to check if the last line is a TimePassageMessage, which
+        # indicates a scene change or a significant pause.
+        #
+        # If not, we can ask the AI to find a good point of
+        # termination.
+
+        if not natural_termination:
+            # No TimePassageMessage, so we need to ask the AI to find a good point of termination
+
+            terminating_line = await self.analyze_dialoge(dialogue_entries)
+
+            if terminating_line:
+                adjusted_dialogue = []
+                for line in dialogue_entries:
+                    if line.message_for_history(scene) in terminating_line:
+                        break
+                    adjusted_dialogue.append(line)
+
+                # if difference start and end is less than 4, ignore the termination
+                if len(adjusted_dialogue) > 4:
+                    dialogue_entries = adjusted_dialogue
+                    end = start + len(dialogue_entries) - 1
+                else:
+                    log.debug(
+                        "build_archive",
+                        message="Ignoring termination",
+                        start=start,
+                        end=end,
+                        adjusted_dialogue=adjusted_dialogue,
+                    )
+
+        if dialogue_entries:
+            # one entry per room the stretch has events in (just the one
+            # without rooms)
+            groups: dict[str | None, list] = {}
+            for entry in dialogue_entries:
+                groups.setdefault(entry_room(entry) if by_room else None, []).append(
+                    entry
+                )
+
+            for room, entries in groups.items():
+                room_context = (
+                    self.previous_room_summaries(room, num_previous)
+                    if by_room
+                    else extra_context
+                )
+                with room_focus(room):
+                    summarized = await self._summarize_archive_entries(
+                        scene, entries, room_context, generation_options
+                    )
+                await scene.push_archive(
+                    ArchiveEntry(
+                        text=summarized,
+                        start=start,
+                        end=end,
+                        ts=ts,
+                        character_names=combine_character_names(entries),
+                        presence=presence_stats(scene, entries),
+                        room=room,
+                    )
+                )
+
+        else:
+            # AI has likely identified the first line as a scene change, so we can't summarize
+            # just use the first line
+            first = scene.history[start]
+            await scene.push_archive(
+                ArchiveEntry(
+                    text=first.message_for_history(scene),
+                    start=start,
+                    end=end,
+                    ts=ts,
+                    character_names=combine_character_names([first]),
+                    presence=presence_stats(scene, [first]),
+                    room=entry_room(first) if by_room else None,
+                )
+            )
+
+        # The scene time is the sum of all time passages in the history, which
+        # can include passages after this entry, so recalculate it (and the
+        # entry timestamps) from them rather than using the entry's timestamp.
+        scene.fix_time()
+        scene.emit_status()
+
+        await talemate.emit.async_signals.get(
+            "agent.summarization.after_build_archive"
+        ).send(emission)
+
+        return True
+
+    async def _summarize_archive_entries(
+        self,
+        scene,
+        entries: list,
+        extra_context: list[str] | None,
+        generation_options: GenerationOptions | None = None,
+    ) -> str:
+        entries = list(entries)
+        if not extra_context:
+            # prepend scene intro to dialogue
+            entries.insert(0, scene.intro)
+
+        summarized = None
+        retries = 5
+
+        while not summarized and retries > 0:
+            summarized = await self.summarize(
+                "\n".join(
+                    entry.message_for_history(scene)
+                    if isinstance(entry, SceneMessage)
+                    else str(entry)
+                    for entry in entries
+                ),
+                extra_context=extra_context,
+                generation_options=generation_options,
+            )
+            retries -= 1
+
+        if not summarized:
+            raise IOError("Failed to summarize dialogue", dialogue=entries)
+
+        return summarized
+
+    def previous_room_summaries(self, room: str | None, num: int) -> list[str] | None:
+        """
+        The most recent summaries of a room (talemate.rooms): what happened in
+        other rooms stays out of its summaries.
+        """
+
+        if num <= 0:
+            return None
+
+        texts = [
+            entry["text"]
+            for entry in self.scene.archived_history
+            # shared history from before rooms were used is common knowledge
+            if entry.get("room") in (room, None) and entry.get("text")
+        ]
+        return texts[-num:] or None
+
+    @set_processing
+    async def analyze_dialoge(self, dialogue):
+        response, extracted = await Prompt.request(
+            "summarizer.analyze-dialogue",
+            self.client,
+            "analyze_freeform",
+            vars={
+                "dialogue": "\n".join(
+                    entry.message_for_history(self.scene) for entry in dialogue
+                ),
+                "scene": self.scene,
+                "max_tokens": self.client.max_token_length,
+            },
+        )
+
+        if not extracted.get("response"):
+            return None
+
+        result = self.clean_result(extracted["response"])
+        return result
+
+    @set_processing
+    async def find_natural_scene_termination(
+        self, event_chunks: list[str]
+    ) -> list[list[str]]:
+        """
+        Will analyze a list of events and return a list of events that
+        has been separated at a natural scene termination points.
+        """
+
+        # scan through event chunks and split into paragraphs
+        rebuilt_chunks = []
+
+        for chunk in event_chunks:
+            paragraphs = [p.strip() for p in chunk.split("\n") if p.strip()]
+            rebuilt_chunks.extend(paragraphs)
+
+        event_chunks = rebuilt_chunks
+
+        response, extracted = await Prompt.request(
+            "summarizer.find-natural-scene-termination-events",
+            self.client,
+            "analyze_short2",
+            vars={
+                "scene": self.scene,
+                "max_tokens": self.client.max_token_length,
+                "events": event_chunks,
+            },
+        )
+        response = extracted["response"].strip() if extracted["response"] else ""
+
+        items = util.extract_list(response)
+
+        # will be a list of
+        # ["Progress 1", "Progress 12", "Progress 323", ...]
+        # convert to a list of just numbers
+
+        numbers = []
+
+        for item in items:
+            match = re.match(r"Progress (\d+)", item.strip())
+            if match:
+                numbers.append(int(match.group(1)))
+
+        # make sure its unique and sorted
+        numbers = sorted(list(set(numbers)))
+
+        result = []
+        prev_number = 0
+        for number in numbers:
+            result.append(event_chunks[prev_number : number + 1])
+            prev_number = number + 1
+
+        # result = {
+        #    "selected": event_chunks[:number+1],
+        #    "remaining": event_chunks[number+1:]
+        # }
+
+        log.debug(
+            "find_natural_scene_termination",
+            response=response,
+            result=result,
+            numbers=numbers,
+        )
+
+        return result
+
+    @set_processing
+    async def summarize(
+        self,
+        text: str,
+        extra_context: str = None,
+        method: str = None,
+        extra_instructions: str = None,
+        generation_options: GenerationOptions | None = None,
+    ):
+        """
+        Summarize the given text
+        """
+
+        response_length = 1024
+
+        template_vars = {
+            "dialogue": text,
+            "scene": self.scene,
+            "max_tokens": self.client.max_token_length,
+            "summarization_method": (
+                self.actions["archive"].config["method"].value
+                if method is None
+                else method
+            ),
+            "extra_context": extra_context or "",
+            "num_extra_context": len(extra_context) if extra_context else 0,
+            "extra_instructions": extra_instructions or "",
+            "agent_instructions": self.archive_instructions or "",
+            "generation_options": generation_options,
+            "analyze_chunks": self.layered_history_analyze_chunks,
+            "response_length": response_length,
+        }
+
+        emission = SummarizeEmission(
+            agent=self,
+            text=text,
+            extra_context=extra_context,
+            extra_instructions=extra_instructions,
+            generation_options=generation_options,
+            template_vars=template_vars,
+            summarization_history=extra_context or [],
+            summarization_type="dialogue",
+        )
+
+        await talemate.emit.async_signals.get(
+            "agent.summarization.summarize.before"
+        ).send(emission)
+
+        template_vars["dynamic_instructions"] = emission.dynamic_instructions
+
+        response, extracted = await Prompt.request(
+            "summarizer.summarize-dialogue",
+            self.client,
+            f"summarize_{response_length}",
+            vars=template_vars,
+            dedupe_enabled=False,
+            response_spec=SUMMARY_SPEC,
+        )
+
+        log.debug(
+            "summarize", dialogue_length=len(text), summarized_length=len(response)
+        )
+
+        # Use extracted summary, fall back to full response if not found
+        summary = extracted["summary"]
+        if not summary:
+            log.error("summarize failed", response=response)
+            return ""
+
+        summary = summary.strip()
+
+        # capitalize first letter
+        try:
+            summary = summary[0].upper() + summary[1:]
+        except IndexError:
+            pass
+
+        emission.response = self.clean_result(summary)
+
+        await talemate.emit.async_signals.get(
+            "agent.summarization.summarize.after"
+        ).send(emission)
+
+        summary = emission.response
+
+        return self.clean_result(summary)
+
+    @set_processing
+    async def summarize_events(
+        self,
+        text: str,
+        extra_context: str = None,
+        extra_instructions: str = None,
+        generation_options: GenerationOptions | None = None,
+        analyze_chunks: bool = False,
+        chunk_size: int = 1280,
+        response_length: int = 2048,
+    ):
+        """
+        Summarize the given text
+        """
+
+        if not extra_context:
+            extra_context = ""
+
+        mentioned_characters: list["Character"] = self.scene.parse_characters_from_text(
+            text + extra_context, exclude_active=True
+        )
+
+        template_vars = {
+            "dialogue": text,
+            "scene": self.scene,
+            "max_tokens": self.client.max_token_length,
+            "extra_context": extra_context,
+            "num_extra_context": len(extra_context),
+            "extra_instructions": extra_instructions or "",
+            "generation_options": generation_options,
+            "analyze_chunks": analyze_chunks,
+            "chunk_size": chunk_size,
+            "response_length": response_length,
+            "mentioned_characters": mentioned_characters,
+        }
+
+        emission = SummarizeEmission(
+            agent=self,
+            text=text,
+            extra_context=extra_context,
+            extra_instructions=extra_instructions,
+            generation_options=generation_options,
+            template_vars=template_vars,
+            summarization_history=[extra_context] if extra_context else [],
+            summarization_type="events",
+        )
+
+        await talemate.emit.async_signals.get(
+            "agent.summarization.summarize.before"
+        ).send(emission)
+
+        template_vars["dynamic_instructions"] = emission.dynamic_instructions
+
+        response, extracted = await Prompt.request(
+            "summarizer.summarize-events",
+            self.client,
+            f"summarize_{response_length}",
+            vars=template_vars,
+            dedupe_enabled=False,
+            response_spec=CHUNK_CLEAN_SPEC,
+        )
+
+        # Use extracted cleaned response (with CHUNK/CHAPTER prefixes stripped)
+        cleaned_response = extracted["cleaned"] or ""
+        cleaned_response = cleaned_response.replace('"', "")
+
+        log.debug(
+            "layered_history_summarize",
+            original_length=len(text),
+            summarized_length=len(cleaned_response),
+        )
+
+        # clean up analyzation (remove analyzation text)
+        if analyze_chunks:
+            # remove all lines that begin with "ANALYSIS OF"
+            # Note: We check for "ANALYSIS OF" (not "ANALYSIS OF CHUNK") because
+            # CHUNK_CLEAN_SPEC already stripped "CHUNK N:" from the text
+            cleaned_response = "\n".join(
+                [
+                    line
+                    for line in cleaned_response.split("\n")
+                    if not line.startswith("ANALYSIS OF")
+                ]
+            )
+
+        # Filter out degenerate chunk lines that are too short to be
+        # meaningful summaries. LLMs sometimes produce placeholder text
+        # like "[No content.]" when a chunk overlaps with prior context.
+        cleaned_response = "\n".join(
+            line.strip()
+            for line in cleaned_response.split("\n")
+            if len(line.strip()) >= MIN_CHUNK_LINE_LENGTH or not line.strip()
+        )
+
+        # capitalize first letter
+        try:
+            cleaned_response = cleaned_response[0].upper() + cleaned_response[1:]
+        except IndexError:
+            pass
+
+        emission.response = self.clean_result(cleaned_response)
+
+        await talemate.emit.async_signals.get(
+            "agent.summarization.summarize.after"
+        ).send(emission)
+
+        result = emission.response
+
+        log.debug(
+            "summarize_events",
+            original_length=len(text),
+            summarized_length=len(result),
+        )
+
+        return self.clean_result(result)
+
+    @set_processing
+    async def summarize_director_chat(self, history: list) -> str:
+        """
+        Summarize a list of director chat messages into a concise summary that keeps
+        important decisions and changes while discarding low-level function details.
+        """
+        response_length = 768
+        response, extracted = await Prompt.request(
+            "summarizer.summarize-director-chat",
+            self.client,
+            f"summarize_{response_length}",
+            vars={
+                "history": history,
+                "scene": self.scene,
+                "max_tokens": self.client.max_token_length,
+                "response_length": response_length,
+            },
+            dedupe_enabled=False,
+            response_spec=SUMMARY_SPEC,
+        )
+
+        # Use extracted summary if found, otherwise fall back to full response
+        result = extracted["summary"]
+        if not result:
+            result = (response or "").strip()
+        else:
+            result = result.strip()
+
+        return self.clean_result(result)

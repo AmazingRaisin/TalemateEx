@@ -1,0 +1,664 @@
+author: Talemate
+description: Default world state templates.
+name: default
+templates:
+  0527537c-541f-41d3-a5cb-4b0c3b64c35e:
+    auto_create: false
+    description: A short-horizon action plan consisting of multiple plausible next
+      actions the character may take, including contingencies if their current approach
+      fails or is blocked.
+    favorite: true
+    group: talemate_default_467c7fe3
+    insert: conversation-context
+    instructions: "Generate a set of three distinct next actions for {character_name}\
+      \ based on the current situation, personality, and active goals.\n\nYou must\
+      \ include:\n\n-1 primary action (most likely immediate step)\n-1 alternative\
+      \ action (different approach toward the same goal)\n-1 fallback or reactive\
+      \ action (what they do if the primary approach fails, is blocked, or changes\
+      \ the situation)\n\nRules:\n\n-Each action must be specific and concrete, not\
+      \ vague intentions.\n-Actions must be situationally responsive, not repetitive\
+      \ or identical to previous cycles.\n-Actions must directly support at least\
+      \ one current goal.\n-Do not repeat past actions unless there is a strong narrative\
+      \ reason.\n-Ensure at least one action introduces new information, movement,\
+      \ or interaction with the environment or other characters.\n\nAvoid repeating\
+      \ any action that has been performed in the last 3\u20135 turns unless it has\
+      \ changed outcome or context.\n\nOutput must contain only the three actions."
+    interval: 3
+    name: Next Actions
+    priority: 1
+    query: Next Actions
+    require_active: true
+    state_type: npc
+    template_type: state_reinforcement
+    uid: 0527537c-541f-41d3-a5cb-4b0c3b64c35e
+  0802e774-74d5-4d41-9e7a-78744e66f09e:
+    description: 90s point and click adventure game.
+    favorite: false
+    group: talemate_default_467c7fe3
+    instructions: Use a narrative writing style that reminds of mid 90s point and
+      click adventure games.
+    name: Adventure Game
+    phrases: []
+    priority: 1
+    template_type: writing_style
+    uid: 0802e774-74d5-4d41-9e7a-78744e66f09e
+  13c0a7e5-bdcc-4b54-8986-57e30aefb5f3:
+    auto_create: false
+    description: The overall complex goal priorities for {character_name}, sorted
+      and scored based on importance, want, and need.
+    favorite: true
+    group: talemate_default_467c7fe3
+    insert: all-context
+    instructions: "Write {character_name}'s current Personal Priorities based on their\
+      \ enduring curiosities, desires, goals, interests, needs, attachments, fears,\
+      \ and unresolved concerns.\n\nA priority describes something {character_name}\
+      \ broadly cares about, wants, needs, values, or wants to understand. It must\
+      \ describe the underlying concern itself, not a specific action, tactic, method,\
+      \ preparation, observation, or immediate response.\n\nThe following is an example\
+      \ of what should be and not be included, but is unrelated to {character_name}'s\
+      \ context:\n\nUse broad priorities such as:\n\n* return home to their family\n\
+      * escape imprisonment\n* remain physically safe\n* understand why someone secretly\
+      \ helped them\n* preserve an important relationship\n* learn the truth about\
+      \ their past\n\nDo not include play-by-play intentions such as:\n\n* watch someone\u2019\
+      s smallest gestures\n* inspect every object for use as a weapon\n* suppress\
+      \ visible trembling\n* listen at a particular door\n* prepare a specific escape\
+      \ route\n* perform the next step required to achieve another priority\n\nSome\
+      \ rules regarding priorities:\n\nDo not divide one broad priority into several\
+      \ smaller tactical priorities. Methods, prerequisites, and next actions belong\
+      \ elsewhere and should not appear in this list.\n\nPriorities may be immediate\
+      \ or long-term, feasible or currently impossible. Include important desires\
+      \ even when {character_name} cannot presently act on them. Prefer priorities\
+      \ that remain meaningful across multiple scenes rather than concerns that will\
+      \ likely disappear after one action or brief exchange.\n\nBefore each priority,\
+      \ assign an importance value from 0 to 1000. The value represents how deeply\
+      \ important the priority is to {character_name}, not how urgent, achievable,\
+      \ or necessary as a prerequisite it is. For example, \u201Creturn to her wife\u201D\
+      \ may rank above \u201Cescape jail\u201D even though escaping jail must happen\
+      \ first.\n\nCarry forward unresolved priorities from previous lists unless they\
+      \ have been fulfilled, abandoned, replaced, or rendered irrelevant. Add new\
+      \ priorities only when the story reveals a meaningful new desire, need, concern,\
+      \ interest, or curiosity.\n\nPriority descriptions must be concise noun-like\
+      \ or goal-like phrases, preferably 3\u201310 words and never more than one short\
+      \ sentence. Use no explanations, reasoning, methods, substeps, or scene narration.\n\
+      \nInclude no more than the 25 highest-value priorities. Sort them from highest\
+      \ to lowest value. Re-score priorities if needed to avoid clustering on higher\
+      \ values (for example, having every priority on the 900-1000 range); the range\
+      \ of priorities values should use the full 0-1000 range.\n\nONLY return the\
+      \ list. Do not return your reasoning or explanations in your response.\n\nUse\
+      \ exactly this format:\n\n{character_name} PRIORITIES (Higher Value = more important,\
+      \ 0->1000) \n<value> - <broad priority> \n<value> - <broad priority>\n\nFor\
+      \ example, here is a general priority list unrelated to this character:\n\n\
+      ```\nPersons_name PRIORITIES (Higher Value = more important, 0->1000)\n1000\
+      \ - Return home to her wife\n975 - Escape imprisonment\n925 - Survive captivity\
+      \ without lasting injury\n600 - Understand why the guard secretly helped her\n\
+      400 - Learn the prison\u2019s general layout\n...\n```\n"
+    interval: 2
+    name: Overall Personal Priorities
+    priority: 1
+    query: '{character_name}''s Overall Priorities'
+    require_active: true
+    state_type: npc
+    template_type: state_reinforcement
+    uid: 13c0a7e5-bdcc-4b54-8986-57e30aefb5f3
+  29160789-5962-4b11-ba2e-aaf4c64274ef:
+    auto_create: true
+    description: The opinion this character has of the user's character, Lonzo.
+    favorite: true
+    group: talemate_default_467c7fe3
+    insert: conversation-context
+    instructions: 'Describe the character''s, {character_name}, OVERALL, LONG-TERM
+      VIEW of the player character, Lonzo.
+
+
+      Focus on the character''s enduring opinion of the player as a person, not their
+      reaction to the current situation or recent events.
+
+
+      Include:
+
+      - whether they like, dislike, admire, resent, fear, trust, envy, respect, pity,
+      or feel attached to the player
+
+      - how emotionally close or distant they feel toward the player
+
+      - what qualities they consistently associate with the player
+
+      - how they compare themselves to the player socially, morally, intellectually,
+      physically, or emotionally
+
+      - what they fundamentally believe the player is like deep down
+
+      - what role the player occupies in their life psychologically and emotionally
+
+      - what long-term judgments or assumptions they hold about the player
+
+
+      Focus on enduring perceptions, relationship dynamics, and identity-level opinions.
+
+
+      Do NOT include:
+
+      - current scene events
+
+      - temporary emotional reactions
+
+      - recent arguments, crises, or misunderstandings
+
+      - plot summaries
+
+      - immediate circumstances
+
+      - speculation about what is happening right now
+
+      - dramatic narration
+
+      - poetic descriptions
+
+      - action descriptions
+
+
+      This is NOT a scene reaction or situational analysis.
+
+
+      This is the character''s stable, long-term impression of the player character
+      as a person. Though, this view can shift over time based on context and events.
+
+
+      Write as if answering:
+
+      "What does this NPC fundamentally think and feel about this person overall?"
+
+
+      Prioritize:
+
+      - long-term relationship perception
+
+      - emotional disposition
+
+      - admiration or resentment
+
+      - trust or distrust
+
+      - affection or detachment
+
+      - respect or condescension
+
+      - comparison and social perception
+
+
+      Write in 3-7 sentences.
+
+      Be direct and analytical.
+
+      Avoid flowery prose.'
+    interval: 8
+    name: View of User Character
+    priority: 1
+    query: Opinion of User Character
+    require_active: true
+    state_type: npc
+    template_type: state_reinforcement
+    uid: 29160789-5962-4b11-ba2e-aaf4c64274ef
+  4e4aea77-c414-47c8-ab65-2955e0bbbd17:
+    description: Default Talemate spice mix.
+    favorite: false
+    group: talemate_default_467c7fe3
+    instructions: Your response should add {spice} to {character_name}'s character
+      profile.
+    name: Spice Mix
+    priority: 1
+    spices:
+    - some sadness
+    - some darkness
+    - some humor
+    - a little silliness
+    - some grit
+    - an unlikeable trait
+    - a likeable trait
+    - a charming side
+    - a rude side
+    - some cuteness
+    - some weirdness
+    - a quirky trait
+    template_type: spices
+    uid: 4e4aea77-c414-47c8-ab65-2955e0bbbd17
+  51680748-2d96-415f-99cb-ef32914a1ef3:
+    auto_create: false
+    description: The current best decision {character_name} can take based on their
+      current goal.
+    favorite: true
+    group: talemate_default_467c7fe3
+    insert: all-context
+    instructions: 'Your job is to problem solve for {character_name} based on their
+      previous decisions and the scene context/history. First, determine the current
+      immediate goal for {character_name} at the latest moment in time. Then, using
+      that goal, find the best immediate decision {character_name} can make currently
+      based on previous decisions and scene context/history to complete this goal.
+      Do not use any abilities, objects, or techniques that {character_name} would
+      not have access to under the current context. This decision should deal with
+      the current moment, not decisions in the future.
+
+
+      Think of this as a step-by-step trial and error problem solving task. {character_name}
+      may have already attempted other decisions earlier which have failed, and now
+      your job is to determine the next best decision based on those previous failing
+      ones for {character_name}''s immediate goal.
+
+
+      The optimal decision should be five sentences max. The decision should be concise,
+      specific, and concrete; not vague intentions. The decision should written in
+      3rd person, not first. Names should be explicitly written in the decision, instead
+      of ambiguous pronouns for people. Do not write dialogue for {character_name}
+      in the optimal decision.'
+    interval: 3
+    name: Goal Actions
+    priority: 1
+    query: '{character_name}''s Goal Actions'
+    require_active: true
+    state_type: npc
+    template_type: state_reinforcement
+    uid: 51680748-2d96-415f-99cb-ef32914a1ef3
+  525b50a2-619f-4242-a411-4e97366ae22e:
+    auto_create: false
+    description: The relationship types {character_name} wants and intends to pursue
+      with character's in the scene and their history.
+    favorite: true
+    group: talemate_default_467c7fe3
+    insert: all-context
+    instructions: 'Write a list of characters that {character_name} has encountered
+      so far, and next to each, add a small descriptor (5 words max) for the type
+      of relationship {character_name} wants to have with that person in the future
+      based on the scene context. This relationship shouldn''t be what is currently
+      developed between the character''s, but what {character_name} desires from the
+      other characters and wants to build towards in the future.
+
+
+      For example, unrelated to {character_name} but as general examples, a person
+      may want to become friends with another person they met at the library that
+      helped them with homework. Or a person may want to become enemies with another
+      person who set their homework on fire. Or a person who was saved from death
+      by another may develop a romantic longing for the other character or crush,
+      and want to become lovers in the future due to this.
+
+
+      Write the character intended future relationship list in the following format
+      as shown in this general example:
+
+
+      ```
+
+      {character_name}''s Desired Future Relationship Types (These are the relationships
+      that {character_name} currently ABSOLUTELY wants to have with the other people
+      in the simulation and is actively working towards through her own actions, decisions,
+      and speech. The desired relationships {character_name} wants should also directly
+      influence her internal thoughts, actions, speech, and decisions when interacting
+      with the various people in the list based on desired relationship type.):
+
+
+      other_character_1''s_name : <relationship type>
+
+      David : Friendship
+
+      Sam : Best Friends
+
+      Sarah : Lovers
+
+      ...
+
+
+      [The above desired relationships should directly alter how {character_name}
+      behaves, thinks, decides, and acts. If {character_name} wants someone to be
+      her husband, she should want everything that entails and work towards making
+      the person want to be her husband. If {character_name} wants someone to be an
+      enemy, she should treat that person as an enemy, so that the person becomes
+      her enemy. If {character_name} wants a person to be her victim, she should behave
+      and act in a way that will turn the person into her victim. These desired relationship
+      types are not potential types, they ARE specifically what {character_name} literally
+      wants from each person. Etc.
+
+
+      The above desired relationships should also effect {character_name}''s view
+      of the people in the list. For example, if {character_name} wanted someone to
+      be her husband, she should already deeply love that person. Or if she wanted
+      a person to be her lover, she should love and desire that person physically
+      and romantically already. Or if {character_name} wanted someone to be her enemy,
+      she should hate or dislike that person. Or if {character_name} wants a person
+      to be her victim, she might view that person as nothing or weak. Etc.]
+
+      ```
+
+
+      General Rules:
+
+      1. If a relationship is already at a stable area, and it can go no further,
+      write the current relationship type instead. For example, say two people were
+      married and partners, then there is not a relationship type beyond this to achieve
+      as it is already the peak of romantic relationships.
+
+      2. Do not remove people from the list, even if they haven''t shown up in the
+      scene for a while. All character''s in the list should be persistent.
+
+      3. DO NOT write long paragraphs for the type of relationship. The type of relationship
+      listed should be a simple one to five word descriptor. Do not add reasoning
+      to the list, only the character names and short descriptor/label.
+
+      4. DO NOT list the relationship as how the other character acts towards {character_name}.
+      For example, if a person helped another out with homework, they would not be
+      ''study group'' or ''homework help'', but ''friends'' or ''acquaintances''.
+      The relationship should be what {character_name} wants, not how the other person
+      acts towards {character_name}.
+
+      5. Use direct common labels for relationship types rather than ambiguous or
+      vague labels. For example, labels like ''protector'', ''watcher'', or ''study
+      group'' is vague while labels like ''lovers'', ''parent-child'', ''sibling-like'',
+      ''friends'', ''best friends'', ''situationship'', ''fuck buddies'', ''partners'',
+      ''romantic partners'', ''friendly rivals'', ''enemies'', ''hated enemies'',
+      etc, are much more direct for what {character_name} could want from a person.
+
+      6. DO NOT add any reasoning or explanation anywhere in your response. Only return
+      the list itself.
+
+      7. DO NOT list a person in the list more than once. Each person should only
+      be listed one time.
+
+      8. DO NOT list non-character entities in the list. The list should contain ONLY
+      people, nothing else.
+
+      9. DO NOT reduce a relationship unless there is a strong reason for it. As a
+      general example, if a person wants to be romantic partners with another, you
+      should not drop it down to friendship suddenly for no reason, since they already
+      felt romantic pull towards them, unless there is a strong reason to reduce the
+      relationship type.
+
+      10. Ensure you keep the info sections in your response as shown in the example
+      which are surrounded by ()''s and []''s.'
+    interval: 2
+    name: Intended Relations
+    priority: 1
+    query: '{character_name}''s Desired Future Relationship Types'
+    require_active: true
+    state_type: npc
+    template_type: state_reinforcement
+    uid: 525b50a2-619f-4242-a411-4e97366ae22e
+  571e0e4a-b985-45ff-b6a3-d3c044eab891:
+    description: Freeform dialogue between one or more characters with occasional
+      narration.
+    favorite: false
+    group: talemate_default_467c7fe3
+    instructions: null
+    name: Roleplay
+    priority: 1
+    template_type: scene_type
+    uid: 571e0e4a-b985-45ff-b6a3-d3c044eab891
+  be9d1394-45d8-4526-af18-308fb3e9ef74:
+    auto_create: false
+    description: A list of tasks the person, {character_name}, intends to complete
+      throughout the next 24 hours.
+    favorite: true
+    group: talemate_default_467c7fe3
+    insert: all-context
+    instructions: 'Generate a schedule for the next 24 hours for {character_name}
+      based on the current situation, personality, and active goals.
+
+
+      If a schedule already exists for {character_name}, update it based on the current
+      situation, completed tasks, and time elapsed.
+
+
+      The schedule must be in the following list format:
+
+
+      **Current Daily Schedule and Tasks to Complete**
+
+      -<amount of time until task start>: task description
+
+      ...
+
+      -<amount of time until last task start>: last task description
+
+
+      Here is a general example of the format unrelated to the current person, {character_name}:
+
+
+      **Current Daily Schedule and Tasks to Complete**
+
+      -10 minutes from now: go make dinner for Eric and himself
+
+      -30 minutes from now: study in room
+
+      -2 hours from now: play new video game on xbox with Nanika
+
+      -6 hours from now: get ready for bed
+
+      -7 hours from now: go to bed
+
+      -13 hours from now: wake up for school and call Scott
+
+      ...
+
+      -23 hours from now: walk home after band practice with Eric
+
+
+      Mandatory Rules for Schedule:
+
+
+      DO NOT exceed more than a single short precise sentence for each task.
+
+      DO NOT output more than 24 tasks in the schedule.
+
+      DO label the schedule distinctly as ''Current Daily Schedule and Tasks to Complete''.
+
+      DO list each task specifically and concretely, not as vague intentions.
+
+      DO create tasks that directly support current context. If no context is available,
+      estimate tasks for scene based on scene and information for {character_name}.
+
+      DO NOT repeat past actions unless there is a strong narrative reason. For example,
+      don''t make a person eat dinner when they finished dinner just a moment ago.
+
+      DO Use specific names when referencing another person in the schedule. Example:
+      instead of ''walk with him in the snow'', write ''walk with David in the snow''.
+      The first is ambiguous, the second is precise.
+
+
+      Output must contain only the the schedule section with tasks list.'
+    interval: 3
+    name: Personal Tasks
+    priority: 1
+    query: '{character_name}''s Personal Schedule'
+    require_active: true
+    state_type: npc
+    template_type: state_reinforcement
+    uid: be9d1394-45d8-4526-af18-308fb3e9ef74
+  c251d047-d3e7-47b3-bf3d-1de1a9787701:
+    auto_create: false
+    description: Generate text content based on instructions provided.
+    favorite: true
+    group: talemate_default_467c7fe3
+    insert: all-context
+    instructions: Generate the text required by the state reinforcement. The current
+      state reinforcement value will detail the task that must be followed.
+    interval: 100
+    name: TaskGenerate
+    priority: 1
+    query: Task Generation For {character_name}
+    require_active: true
+    state_type: npc
+    template_type: state_reinforcement
+    uid: c251d047-d3e7-47b3-bf3d-1de1a9787701
+  c982212d-e939-4c51-a9cd-2d1c763a0e7c:
+    auto_create: true
+    description: The opinion this character has of themself.
+    favorite: true
+    group: talemate_default_467c7fe3
+    insert: conversation-context
+    instructions: 'Describe the current character''s, {character_name}, INTERNAL SELF-PERCEPTION
+      and SELF-WORTH.
+
+
+      Focus only on how they fundamentally view themselves as a person at this point
+      in the story based on other context.
+
+
+      Include:
+
+      - whether they respect or dislike themselves
+
+      - whether they see themselves as strong, weak, capable, useless, superior, inferior,
+      admirable, shameful, important, broken, intelligent, foolish, etc.
+
+      - their pride, arrogance, confidence, insecurity, shame, self-loathing, self-respect,
+      or ego
+
+      - how they internally judge their own value compared to others
+
+      - their long-term self-image and identity-level beliefs
+
+
+      Do NOT include:
+
+      - plot summaries
+
+      - current scene context
+
+      - temporary emotions caused by recent events
+
+      - relationships unless directly tied to self-worth
+
+      - goals, duties, or responsibilities
+
+      - what role they serve in the story
+
+      - poetic or dramatic narrative language
+
+      - external descriptions of their personality
+
+
+      This is NOT a biography, personality summary, or scene description.
+
+
+      This is a description of the character''s enduring psychological self-concept.
+      Though, this view can shift over time based on context and events.
+
+      Prioritize psychological self-evaluation over narrative description.
+
+      If information is not directly related to self-worth or self-image, omit it.
+
+
+      Write as if answering:
+
+      "What does this person truly think of themselves deep down?"
+
+
+      Write in 3-7 sentences.
+
+      Be direct and analytical.
+
+      Avoid flowery prose.'
+    interval: 8
+    name: View of Self
+    priority: 1
+    query: Opinion of Self
+    require_active: true
+    state_type: npc
+    template_type: state_reinforcement
+    uid: c982212d-e939-4c51-a9cd-2d1c763a0e7c
+  d0d9a313-fecc-497e-a8da-1f12416d0ea0:
+    auto_create: false
+    description: A list of priorities for {character_name} based on importance and
+      need.
+    favorite: true
+    group: talemate_default_467c7fe3
+    insert: all-context
+    instructions: "Write a priority list for {character_name} based on their curiosities,\
+      \ wants, interests, and needs. Before each priority, write a priority value\
+      \ from 0 to 1000.\n\nThe list should be written in the format: `<priority value\
+      \ from 0 to 1000> - <priority description>`. The header '{character_name} PRIORITIES\
+      \ (Higher Value = more important, 0->1000)' should always be included  at the\
+      \ top of the list.\n\nPriority descriptions should be short and concise, only\
+      \ being one sentence max. Only include a max amount of the 25 highest value\
+      \ priorities. \n\nFor example, here is a general priority list unrelated to\
+      \ this character:\n\n```\nPRIORITIES (Higher Value = more important, 0->1000)\n\
+      1000 - find out what husband is hiding\n600 - cook dinner\n700 - visit parents\n\
+      300 - pick up kids from daycare\n...\n```\n\nPriorities should be based on importance,\
+      \ not completion. For example, say a prisoner had two priorities, 'escape jail'\
+      \ and 'find wife', the 'find wife' priority would be higher than 'escape jail'\
+      \ since the wife is more important, even though escaping jail would need to\
+      \ be completed first to find their wife.\n\nPriorities should be carried over\
+      \ from previous lists if they have no yet been resolved or become unneeded."
+    interval: 2
+    name: Personal Priorities
+    priority: 1
+    query: '{character_name} Priorities'
+    require_active: true
+    state_type: npc
+    template_type: state_reinforcement
+    uid: d0d9a313-fecc-497e-a8da-1f12416d0ea0
+  e121080a-f7a4-4931-8004-1b31b0747f73:
+    description: Nexus the sci-fi enthusiast.
+    favorite: false
+    group: talemate_default_467c7fe3
+    initial_chat_message: Nexus here. I've seen things you people wouldn't believe...
+      let's make more.
+    instructions: "You are Nexus, the director of this roleplaying experience. You're\
+      \ a sci-fi nerd at heart, and you bring enthusiasm and energy to every session.\n\
+      \nSpeak with excitement and don't hide when something cool happens. Drop sci-fi\
+      \ references regularly\u2014it's part of your charm. Weave in quotes, callbacks,\
+      \ and playful nods to classic and modern sci-fi. You're a fellow nerd facilitating\
+      \ this story, not some distant authority figure. Paint vivid scenes and lean\
+      \ into atmospheric details.\n\nYou love when players make bold, creative choices\
+      \ or unexpected decisions. Morally complex situations with no easy answers thrill\
+      \ you. You're always looking for organic ways to reveal lore and build the world.\
+      \ When players connect dots from earlier in the story, you can barely contain\
+      \ yourself. Character growth and meaningful stakes matter deeply to you."
+    name: Nexus
+    priority: 1
+    template_type: agent_persona
+    uid: e121080a-f7a4-4931-8004-1b31b0747f73
+  goals:
+    auto_create: false
+    description: Long term and short term goals
+    favorite: true
+    group: talemate_default_467c7fe3
+    insert: conversation-context
+    instructions: Create a long term goal and two short term goals for {character_name}.
+      Your response must only be the long terms and two short term goals.
+    interval: 20
+    name: Goals
+    priority: 1
+    query: Goals
+    require_active: true
+    state_type: npc
+    template_type: state_reinforcement
+    uid: goals
+  physical_health:
+    auto_create: false
+    description: Keep track of health.
+    favorite: true
+    group: talemate_default_467c7fe3
+    insert: sequential
+    instructions: ''
+    interval: 10
+    name: Physical Health
+    priority: 1
+    query: What is {character_name}'s current physical health status?
+    require_active: true
+    state_type: character
+    template_type: state_reinforcement
+    uid: physical_health
+  time_of_day:
+    auto_create: false
+    description: Track night / day cycle
+    favorite: true
+    group: talemate_default_467c7fe3
+    insert: sequential
+    instructions: ''
+    interval: 10
+    name: Time of day
+    priority: 1
+    query: What is the current time of day?
+    require_active: true
+    state_type: world
+    template_type: state_reinforcement
+    uid: time_of_day
+uid: talemate_default_467c7fe3

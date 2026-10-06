@@ -1,0 +1,74 @@
+{#-
+Extractors:
+  - name: AnchorExtractor("<NAME>", "</NAME>")
+
+Override example:
+  {{ set_anchor_extractor("name", "<MY_TAG>", "</MY_TAG>") }}
+  {{ set_as_is_extractor("name") }}
+-#}
+{# EXTRA CONTEXT CONTENT #}
+{% set rendered_context_content %}
+{% with include_scenario_premise=True %}
+{% include "extra-context-static.jinja2" %}
+{% endwith %}
+{% endset %}
+{# END EXTRA CONTEXT CONTENT #}
+
+{# VOLATILE CONTEXT #}
+{% set volatile_context_text %}
+{% include "extra-context-dynamic.jinja2" %}
+{% endset -%}
+{# END VOLATILE CONTEXT #}
+
+{# PREPARE SCENE HISTORY #}
+{% set rendered_context_tokens = count_tokens(rendered_context_content) -%}
+{% set budget = max_tokens-300-rendered_context_tokens-count_tokens(volatile_context_text) -%}
+{% set scene_history = scene.context_history(budget=budget) -%}
+{# END PREPARE SCENE HISTORY #}
+
+{# BUILD SCENE CONTEXT #}
+{% set scene_context_text %}
+<|SECTION:SCENE|>
+{% for scene_line in scene_history -%}
+{{ scene_line }}
+{% endfor %}
+<|CLOSE_SECTION|>
+{% endset -%}
+{# END BUILD SCENE CONTEXT #}
+
+{# RENDER PROMPT #}
+{% set volatile_placement = volatile_context_placement() %}
+{{ rendered_context_content }}
+
+{% if volatile_placement != "after_history" %}{{ volatile_context_text }}{% endif %}
+
+{{ scene_context_text }}
+
+{% if volatile_placement == "after_history" %}{{ volatile_context_text }}{% endif %}
+<|SECTION:TASK|>
+{% if not group -%}
+{# single character name -#}
+Determine character name based on the following data: {{ character_name }}{% if instructions %}; {{ instructions }}{% endif %}
+
+{% if not allowed_names -%}
+If the character already has a distinct name, respond with the character's name.
+If the name is currently a description, give the character a distinct name.
+If we don't know the character's actual name, you must decide one.
+{% else %}
+Pick the most fitting name from the following list: {{ allowed_names|join(', ') }}. If none of the names fit, respond with the most accurate name based on the sentence.
+{%- endif %}
+{%- else %}
+{# group name -#}
+Determine a descriptive group name based on the following sentence: {{ character_name }}
+
+This is how this group of characters will be referred to in the script whenever they have dialogue or performance.
+
+The group name MUST fit the context of the scenario and scene.
+
+If the sentence lists multiple characters by name, you must repeat it back as is.
+{%- endif %}
+
+Put the {% if not group %}character{% else %}group{% endif %} name inside <NAME></NAME> tags.
+Respond ONLY with the name inside the tags, nothing else.
+<|CLOSE_SECTION|>
+{{ set_prepared_response("<NAME>") }}
