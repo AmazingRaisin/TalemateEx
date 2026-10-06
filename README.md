@@ -2,7 +2,9 @@
 
 Roleplay with AI with a focus on strong narration and consistent world and game state tracking.
 
-Comes with the following additions:
+###Comes with the following additions:
+
+---
 
 Narrative Omniscience Disable Editor Step: Runs character messages through editor step which removes content other characters cannot perceive (thoughts, secrets, etc). Produces two message versions: character's own message with private info and public message with removed private info (public one is shown to other characters in their own prompts).
 
@@ -24,6 +26,7 @@ Character Management: Can group characters so they only make 1 LLM call instead 
 
 Recommended to use Deepseek and GLM-5.2. This repo has client settings already built in for ease of usage, but they can be modified easily. For narrative omniscience disable in the editor, I recommend using Gemma 4 31B whether through OpenRouter, Google AI Studio API, or llamacpp to get the best results as it seems to understand the task the best.
 
+---
 
 <div align="center">
 
